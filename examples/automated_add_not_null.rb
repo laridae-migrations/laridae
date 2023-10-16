@@ -5,7 +5,7 @@ test_insert_sql = <<~SQL
   INSERT INTO before.employees (id, name, age, phone)
   VALUES (101, 'inserted into before', 20, '1231231231');
   INSERT INTO after.employees (id, name, age, phone)
-  VALUES (102 'inserted into after', 40, '1231231231');
+  VALUES (102, 'inserted into after', 40, '1231231231');
 SQL
 
 test_update_sql = <<~SQL

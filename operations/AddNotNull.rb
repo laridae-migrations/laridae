@@ -13,14 +13,16 @@ class AddNotNull
 
   def rollback
     sql = <<~SQL
-      DROP SCHEMA IF EXISTS before CASCADE;
-      DROP SCHEMA IF EXISTS after CASCADE;
-      DROP TRIGGER IF EXISTS trigger_propagate_#{@column}_update ON #{@schema}.#{@table} CASCADE;
-      DROP TRIGGER IF EXISTS trigger_propagate_#{@column_not_null}_update ON #{@schema}.#{@table} CASCADE;
-      DROP FUNCTION IF EXISTS laridae_supplied_up_#{@table}_#{@column} CASCADE;
-      DROP FUNCTION IF EXISTS laridae_supplied_down_#{@table}_#{@column} CASCADE;
-      ALTER TABLE #{@schema}.#{@table} DROP COLUMN IF EXISTS #{@column_not_null} CASCADE;
-      ALTER TABLE #{@schema}.#{@table} DROP CONSTRAINT IF EXISTS laridae_constraint_#{@column}_not_null CASCADE;
+    DROP SCHEMA IF EXISTS before CASCADE;
+    DROP SCHEMA IF EXISTS after CASCADE;
+    DROP FUNCTION IF EXISTS laridae_supplied_up_#{@table}_#{@column} CASCADE;
+    DROP FUNCTION IF EXISTS laridae_supplied_down_#{@table}_#{@column} CASCADE;
+    DROP FUNCTION IF EXISTS propagate_#{@column}_update() CASCADE;
+    DROP FUNCTION IF EXISTS propagate_#{@column_not_null}_update() CASCADE;
+    DROP FUNCTION IF EXISTS laridae_triggerfn_insert_up_#{@table}_#{@column} CASCADE;
+    DROP FUNCTION IF EXISTS laridae_triggerfn_insert_down_#{@table}_#{@column} CASCADE;
+    ALTER TABLE #{@schema}.#{@table} DROP COLUMN IF EXISTS #{@column_not_null} CASCADE;
+    ALTER TABLE #{@schema}.#{@table} DROP CONSTRAINT IF EXISTS laridae_constraint_#{@column}_not_null CASCADE;
     SQL
     @database.query(sql)
   end
@@ -62,10 +64,17 @@ class AddNotNull
     sql = <<~SQL
       DROP SCHEMA IF EXISTS before CASCADE;
       DROP SCHEMA IF EXISTS after CASCADE;
+      DROP FUNCTION IF EXISTS laridae_supplied_up_#{@table}_#{@column} CASCADE;
+      DROP FUNCTION IF EXISTS laridae_supplied_down_#{@table}_#{@column} CASCADE;
+      DROP FUNCTION IF EXISTS propagate_#{@column}_update() CASCADE;
+      DROP FUNCTION IF EXISTS propagate_#{@column_not_null}_update() CASCADE;
       DROP FUNCTION IF EXISTS laridae_triggerfn_insert_up_#{@table}_#{@column} CASCADE;
       DROP FUNCTION IF EXISTS laridae_triggerfn_insert_down_#{@table}_#{@column} CASCADE;
       ALTER TABLE #{@table} DROP COLUMN IF EXISTS #{@column} CASCADE;
       ALTER TABLE #{@table} RENAME COLUMN #{@column_not_null} TO #{@column};
+      ALTER TABLE #{@schema}.#{@table} 
+        RENAME CONSTRAINT laridae_constraint_#{@column}_not_null 
+        TO constraint_#{@column}_not_null;
     SQL
     @database.query(sql)
   end
@@ -213,7 +222,7 @@ class AddNotNull
         LANGUAGE plpgsql
       AS $$
       BEGIN
-        NEW.#{@column_not_null} := up(NEW.#{@column});
+        NEW.#{@column_not_null} := laridae_supplied_up_#{@table}_#{@column}(NEW.#{@column});
         RETURN NEW;
       END;
       $$
@@ -236,7 +245,7 @@ class AddNotNull
         LANGUAGE plpgsql
       AS $$
       BEGIN
-        NEW.#{@column} := down(NEW.#{@column_not_null});
+        NEW.#{@column} := laridae_supplied_down_#{@table}_#{@column}(NEW.#{@column_not_null});
         RETURN NEW;
       END;
       $$
