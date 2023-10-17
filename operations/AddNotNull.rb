@@ -43,8 +43,8 @@ class AddNotNull
     create_views
     create_transformative_functions
     create_triggers
-    #backfill
-    #validate_not_null_constraint
+    backfill
+    validate_not_null_constraint
   end
 
   #=============================================================
@@ -65,8 +65,9 @@ class AddNotNull
       DROP SCHEMA IF EXISTS before CASCADE;
       DROP SCHEMA IF EXISTS after CASCADE;
       DROP SCHEMA IF EXISTS laridae CASCADE;
-      DROP FUNCTION IF EXISTS "laridae_supplied_up_employees_phone" CASCADE;
-      DROP FUNCTION IF EXISTS "laridae_supplied_down_employees_phone" CASCADE;
+      DROP FUNCTION IF EXISTS "before.laridae_supplied_up_#{@table}_#{@column}" CASCADE;
+      DROP FUNCTION IF EXISTS "after.laridae_supplied_down_#{@table}_#{@column}" CASCADE;
+      DROP TRIGGER IF EXISTS "trigger_propagate_laridae_new_#{@column}" ON #{@table} CASCADE;
     SQL
     @database.query(sql)
   end
@@ -115,8 +116,8 @@ class AddNotNull
     non_involved_columns = Utils.get_all_non_involved_columns_names(@database, @schema, @table, @column)
     sql = <<~SQL
       CREATE SCHEMA after;
-      CREATE VIEW after.employees AS
-      SELECT #{non_involved_columns.join(', ')}, laridae_new_#{@column} AS #{@column} from public.employees;
+      CREATE VIEW after.#{@table} AS
+      SELECT #{non_involved_columns.join(', ')}, laridae_new_#{@column} AS #{@column} from #{@schema}.#{@table};
     SQL
     puts sql
     @database.query(sql)
@@ -162,7 +163,7 @@ class AddNotNull
   def backfill
     sql = <<~SQL
       UPDATE #{@schema}.#{@table}
-      SET #{@column_not_null} = laridae_supplied_up_#{@table}_#{@column}(#{@column});
+      SET #{@column_not_null} = before.laridae_supplied_up_#{@table}_#{@column}(#{@column});
     SQL
     @database.query(sql)
   end
