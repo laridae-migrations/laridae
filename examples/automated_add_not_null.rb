@@ -1,3 +1,4 @@
+require 'json'
 require_relative '../operations/AddNotNull'
 require_relative '../components/DatabaseConnection'
 
@@ -34,9 +35,9 @@ script = {
     column: "phone"
   },
   functions: {
-    up: "SELECT CASE WHEN $1 IS NULL THEN ''0000000000'' ELSE $1 END",
-    down: 'SELECT $1'
+    up: "SELECT CASE WHEN phone IS NULL THEN ''0000000000'' ELSE phone END",
+    down:"phone"
   }
 }
 
-AddNotNull.new(db, script).run
+AddNotNull.new(db, script.to_json).run
