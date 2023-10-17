@@ -27,15 +27,20 @@ INSERT INTO public.phones VALUES (3, 3, '5886550296');
 INSERT INTO public.phones VALUES (4, 4, '7433751878');
 INSERT INTO public.phones VALUES (5, 5, '5089774948');
 
+SET SEARCH_PATH = 'before';
+INSERT INTO employees (id, name, age, phone)
+VALUES (11, 'inserted into before', 20, '1231231231');
+INSERT INTO employees (id, name, age, phone)
+VALUES (12, 'inserted into before with null', 20, NULL);
+SET SEARCH_PATH = 'after';
+INSERT INTO employees (id, name, age, phone)
+VALUES (13, 'inserted into after', 40, '1231231231');
 
-  INSERT INTO before.employees (id, name, age, phone)
-  VALUES (11 'inserted into before', 20, '1231231231');
-  INSERT INTO after.employees (id, name, age, phone)
-  VALUES (12, 'inserted into after', 40, '1231231231');
-
-   UPDATE before.employees 
-    SET phone = '9999999999'
-    WHERE name = 'inserted into before';
-  UPDATE after.employees 
-    SET phone = '8888888888'
-    WHERE name = 'inserted into after';
+SET SEARCH_PATH='before';
+UPDATE employees 
+  SET phone = '9999999999'
+  WHERE name = 'inserted into before';
+SET SEARCH_PATH='after';
+UPDATE employees 
+  SET phone = '8888888888'
+  WHERE name = 'inserted into after';

@@ -36,7 +36,7 @@ script = {
   },
   functions: {
     up: "SELECT CASE WHEN phone IS NULL THEN ''0000000000'' ELSE phone END",
-    down:"phone"
+    down:"SELECT phone"
   }
 }
 
