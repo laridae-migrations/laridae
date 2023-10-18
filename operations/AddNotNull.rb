@@ -65,6 +65,7 @@ class AddNotNull
     DROP SCHEMA IF EXISTS after CASCADE;
     DROP SCHEMA IF EXISTS laridae CASCADE;
     DROP FUNCTION IF EXISTS laridae_triggerfn_#{@table}_#{@column_not_null} CASCADE;
+    DROP TRIGGER IF EXISTS trigger_propagate_#{@column_not_null} ON #{@schema}.#{@table} CASCADE;
     SQL
     @database.query(sql)
   end
