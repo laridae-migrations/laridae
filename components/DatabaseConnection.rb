@@ -8,6 +8,7 @@ class DatabaseConnection
   end
 
   def query(sql, *params) 
+    puts("----------------", sql)
     @database.exec_params(sql, *params)
   end
 end
