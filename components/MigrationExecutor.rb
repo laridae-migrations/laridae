@@ -8,6 +8,7 @@ class MigrationExecutor
   }
   def initialize(db_connection, migration_script)
     @database = db_connection
+    @database.turn_off_notices
     @script = JSON.parse(migration_script)
   end
 
@@ -31,5 +32,6 @@ class MigrationExecutor
     else 
       puts 'Expand only'
     end
+    @database.close
   end
 end

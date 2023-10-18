@@ -7,9 +7,9 @@ class TableManipulator
 
   def cleanup
     sql = <<~SQL
-    DROP SCHEMA IF EXISTS before CASCADE;
-    DROP SCHEMA IF EXISTS after CASCADE;
-    DROP SCHEMA IF EXISTS laridae CASCADE;
+    DROP SCHEMA IF EXISTS laridae_before CASCADE;
+    DROP SCHEMA IF EXISTS laridae_after CASCADE;
+    DROP SCHEMA IF EXISTS laridae_temp CASCADE;
     SQL
     @database.query(sql)
   end
@@ -37,23 +37,31 @@ class TableManipulator
       .first
   end
 
+  def sql_to_declare_variables
+    sql = ''
+    get_all_columns_names.each do |column|
+      sql += "#{column} #{@schema}.#{@table}.#{column}%TYPE := NEW.#{column}; \n"
+    end
+    sql
+  end
+
   def create_trigger_function(old_column, new_column, up, down)
+    fixed_down = down.gsub(old_column, new_column)
     sql = <<~SQL
-      CREATE SCHEMA IF NOT EXISTS laridae;
-      CREATE OR REPLACE FUNCTION laridae.triggerfn_#{@table}_#{old_column}()
+      CREATE SCHEMA IF NOT EXISTS laridae_temp;
+      CREATE OR REPLACE FUNCTION laridae_temp.triggerfn_#{@table}_#{old_column}()
         RETURNS trigger
         LANGUAGE plpgsql
       AS $$
         DECLARE
-          #{old_column} #{@schema}.#{@table}.#{old_column}%TYPE := NEW.#{old_column};
-          #{new_column} #{@schema}.#{@table}.#{new_column}%TYPE := NEW.#{new_column};
+          #{sql_to_declare_variables}
           search_path text;
         BEGIN
           SELECT current_setting
             INTO search_path
             FROM current_setting('search_path');
-          IF search_path = 'after' THEN
-            NEW.#{old_column} := #{down};
+          IF search_path = 'laridae_after' THEN
+            NEW.#{old_column} := #{fixed_down};
           ELSE
             NEW.#{new_column} := #{up};
           END IF;
@@ -70,7 +78,7 @@ class TableManipulator
       CREATE TRIGGER trigger_propagate_#{old_column}
       BEFORE INSERT OR UPDATE
       ON #{@schema}.#{@table}
-      FOR EACH ROW EXECUTE FUNCTION laridae.triggerfn_#{@table}_#{old_column}();
+      FOR EACH ROW EXECUTE FUNCTION laridae_temp.triggerfn_#{@table}_#{old_column}();
     SQL
     @database.query(sql_create_trigger)
   end
