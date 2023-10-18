@@ -35,8 +35,8 @@ script = {
     column: "phone"
   },
   functions: {
-    up: "SELECT CASE WHEN phone IS NULL THEN ''0000000000'' ELSE phone END",
-    down:"SELECT phone"
+    up: "CASE WHEN phone IS NULL THEN '0000000000' ELSE phone END",
+    down: "phone"
   }
 }
 

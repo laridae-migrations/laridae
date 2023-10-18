@@ -17,7 +17,7 @@ class AddNotNull
     @column_not_null = "laridae_new_#{@column}"
 
     @up_function = script_hash['functions']['up']
-    @down_function = script_hash['functions']['down']
+    @down_function = script_hash['functions']['down'].gsub(@column, @column_not_null)
   end
 
   def run
@@ -41,7 +41,6 @@ class AddNotNull
 
   def expand
     create_views
-    create_transformative_functions
     create_triggers
     backfill
     validate_not_null_constraint
@@ -62,12 +61,10 @@ class AddNotNull
 
   def cleanup
     sql = <<~SQL
-      DROP SCHEMA IF EXISTS before CASCADE;
-      DROP SCHEMA IF EXISTS after CASCADE;
-      DROP SCHEMA IF EXISTS laridae CASCADE;
-      DROP FUNCTION IF EXISTS "before.laridae_supplied_up_#{@table}_#{@column}" CASCADE;
-      DROP FUNCTION IF EXISTS "after.laridae_supplied_down_#{@table}_#{@column}" CASCADE;
-      DROP TRIGGER IF EXISTS "trigger_propagate_laridae_new_#{@column}" ON #{@table} CASCADE;
+    DROP SCHEMA IF EXISTS before CASCADE;
+    DROP SCHEMA IF EXISTS after CASCADE;
+    DROP SCHEMA IF EXISTS laridae CASCADE;
+    DROP FUNCTION IF EXISTS laridae_triggerfn_#{@table}_#{@column_not_null} CASCADE;
     SQL
     @database.query(sql)
   end
@@ -123,8 +120,17 @@ class AddNotNull
     @database.query(sql)
   end
 
-  # create the backward and forward triggers
+  def sql_to_declare_variables(down_operation = true)
+    sql = ''
+    columns = Utils.get_all_columns_names(@database, @schema, @table)
+    columns.each do |column|
+      sql += "#{column} #{@schema}.#{@table}.#{column}%TYPE := NEW.#{column};\n"
+    end
+    sql
+  end
 
+  # create the backward and forward triggers
+  # todo: search_path could be neither before nor after
   def create_trigger_function
     sql = <<~SQL
       CREATE OR REPLACE FUNCTION #{@schema}.laridae_triggerfn_#{@table}_#{@column_not_null}()
@@ -132,15 +138,17 @@ class AddNotNull
         LANGUAGE plpgsql
       AS $$
         DECLARE
+          #{@column} #{@schema}.#{@table}.#{@column}%TYPE := NEW.#{@column};
+          #{@column_not_null} #{@schema}.#{@table}.#{@column_not_null}%TYPE := NEW.#{@column_not_null};
           search_path text;
         BEGIN
           SELECT current_setting
             INTO search_path
             FROM current_setting('search_path');
           IF search_path = 'after' THEN
-            NEW.#{@column} := after.laridae_supplied_down_#{@table}_#{@column}(NEW.#{@column_not_null});
+            NEW.#{@column} := #{@down_function};
           ELSE
-            NEW.#{@column_not_null} := before.laridae_supplied_up_#{@table}_#{@column}(NEW.#{@column});
+            NEW.#{@column_not_null} := #{@up_function};
           END IF;
           RETURN NEW;
         END;
@@ -163,7 +171,7 @@ class AddNotNull
   def backfill
     sql = <<~SQL
       UPDATE #{@schema}.#{@table}
-      SET #{@column_not_null} = before.laridae_supplied_up_#{@table}_#{@column}(#{@column});
+      SET #{@column_not_null} = #{@up_function};
     SQL
     @database.query(sql)
   end
@@ -174,31 +182,5 @@ class AddNotNull
       VALIDATE CONSTRAINT laridae_constraint_#{@column}_not_null
     SQL
     @database.query(sql)
-  end
-
-  def create_up_function
-    sql = <<~SQL
-      CREATE FUNCTION before.laridae_supplied_up_#{@table}_#{@column}(#{Utils.get_column_type(@database, @schema, @table, @column)}) 
-      RETURNS #{Utils.get_column_type(@database, @schema, @table, @column)}
-      AS '#{@up_function.gsub(@column, "$1")}'
-      LANGUAGE SQL;
-    SQL
-    @database.query(sql)
-  end
-  
-  def create_down_function
-    sql = <<~SQL
-      CREATE FUNCTION after.laridae_supplied_down_#{@table}_#{@column}(#{Utils.get_column_type(@database, @schema, @table, @column)}) 
-      RETURNS #{Utils.get_column_type(@database, @schema, @table, @column)}
-      AS '#{@down_function.gsub(@column, "$1")}'
-      LANGUAGE SQL;
-    SQL
-    @database.query(sql)
-  end
-
-  # create up and down functions based on supplied functions from migration script
-  def create_transformative_functions
-    create_up_function
-    create_down_function
   end
 end
