@@ -1,6 +1,6 @@
 require 'json'
-require_relative './MigrationExecutor'
-require_relative './DatabaseConnection'
+require_relative '../components/MigrationExecutor'
+require_relative '../components/DatabaseConnection'
 
 script = {
   operation: "add_not_null",

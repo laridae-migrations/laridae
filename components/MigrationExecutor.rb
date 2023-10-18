@@ -1,5 +1,5 @@
 require_relative './TableManipulator'
-require_relative './AddNotNullHandler'
+require_relative '../operations/AddNotNullHandler'
 require 'json'
 
 class MigrationExecutor

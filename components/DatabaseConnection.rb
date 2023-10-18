@@ -7,8 +7,7 @@ class DatabaseConnection
     @database = PG.connect(database_hash)
   end
 
-  def query(sql, *params) 
-    puts("----------------", sql)
+  def query(sql, *params)
     @database.exec_params(sql, *params)
   end
 end
