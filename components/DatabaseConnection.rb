@@ -10,4 +10,12 @@ class DatabaseConnection
   def query(sql, *params)
     @database.exec_params(sql, *params)
   end
+
+  def turn_off_notices
+    @database.exec("SET client_min_messages TO WARNING;")
+  end
+
+  def close
+    @database.close if @database
+  end
 end
