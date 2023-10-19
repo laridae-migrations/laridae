@@ -94,15 +94,12 @@ Use the `#run` method to start the Expand and Contract process:
 
 ## SPECIFIC EXAMPLES
 
-### `add_not_null.rb`
+## TESTING
 
-A prototype of our functionality in a simple set use-case:
+Testing is done using `rspec`, all specs can be found in `\tests`
+`\test_data` contain `.pglsql` data for spec files, each spec handles its own data population
 
-Adding the `NOT NULL` constraint to the `phone` column by:
-
-- Create a column `phone_not_null` with the `NOT NULL` as a table constraint
-- Create 2 views: `before` and `after`
-- Add triggers to propagate data between `phone` and `phone_not_null` on inserts and updates
-- Backfilling `phone_not_null` with `'0000000000'`
-- Validate the table `NOT NULL` constraint
-- Prompt the user whether or not to contract: delete all views, triggers, functions, delete `phone`, rename `phone_not_null` to `phone`
+To run a spec:
+```
+rspec tests/spec_file_name.rb
+```
