@@ -37,6 +37,20 @@ This class contains logic for interacting directly with the database that is use
 
 To create a TableManipulator, pass in a `DatabaseConnectionObject` and strings containing the schema and table name it will operate on.
 
+## SCRIPT VALIDATOR
+
+Laridae will be configured to run an initial validation check on the migration script and the database. This checks for the valid existence of the entities involved in the migration
+
+The `Validator` class can be run directly, requiring a `DatabaseConnection` object, and a migration script hash
+
+```ruby
+Validator.new(db_connection, script_migration).run
+```
+
+A valid migration will return a hash `{ valid: true }`
+A migration script containing error will return a hash"
+`{ valid: false, message: 'Some error message' }`
+
 ## OPERATIONS
 
 The details of performing expand/contract/rollback for each operation are the responsibility of classes defined in the operations directory. Each of these classes takes a `DatabaseConnection` object, and a `migration_script` hash containing the necessary data for the migration.
@@ -104,15 +118,13 @@ Use the `#run` method to start the Expand and Contract process:
 
 ## SPECIFIC EXAMPLES
 
-### `add_not_null.rb`
+## TESTING
 
-A prototype of our functionality in a simple set use-case:
+Testing is done using `rspec`, all specs can be found in `\tests`
+`\test_data` contain `.pglsql` data for spec files, each spec handles its own data population
 
-Adding the `NOT NULL` constraint to the `phone` column by:
+To run a spec:
 
-- Create a column `phone_not_null` with the `NOT NULL` as a table constraint
-- Create 2 views: `before` and `after`
-- Add triggers to propagate data between `phone` and `phone_not_null` on inserts and updates
-- Backfilling `phone_not_null` with `'0000000000'`
-- Validate the table `NOT NULL` constraint
-- Prompt the user whether or not to contract: delete all views, triggers, functions, delete `phone`, rename `phone_not_null` to `phone`
+```
+rspec tests/spec_file_name.rb
+```
