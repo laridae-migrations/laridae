@@ -30,7 +30,7 @@ Laridae will be configured to run an initial validation check on the migration s
 
 The `Validator` class can be run directly, requiring a `DatabaseConnection` object, and a migration script hash
 ```ruby
-Validator.new(db_connection, script_migration)
+Validator.new(db_connection, script_migration).run
 ```
 
 A valid migration will return a hash `{ valid: true }`
