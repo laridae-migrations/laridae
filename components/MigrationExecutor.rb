@@ -1,10 +1,16 @@
 require_relative './TableManipulator'
 require_relative '../operations/AddNotNullHandler'
+require_relative '../operations/RenameColumnHandler'
+require_relative '../operations/AddCheckConstraintHandler'
+require_relative '../operations/DropColumnHandler'
 require 'json'
 
 class MigrationExecutor
   HANDLERS_BY_OPERATION = {
-    "add_not_null" => AddNotNullHandler
+    "add_not_null" => AddNotNullHandler,
+    'rename_column' => RenameColumnHandler,
+    'add_check_constraint' => AddCheckConstraintHandler,
+    'drop_column' => DropColumnHandler
   }
   def initialize(db_connection, migration_script)
     @database = db_connection

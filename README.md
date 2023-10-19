@@ -1,16 +1,19 @@
 # LARIDAE
 
 ## ABOUT THE PROJECT DIRECTORIES
+
 - `components`: contains `DatabaseConnection.rb`
 - `examples`: specific examples using the `HR_app` example app
 - `operations`: each file contains the definition of a Ruby Class that does a specific operation
 
 ## `DatabaseConnection.rb`
-This Class represents the connection to the PostgreSQL database. 
 
-To instantiate a `DatabaseConnection` object, pass in a hash containing the database connection parameters. [A list of valid parameters](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS) can be found in the PostgreSQL documentations. 
+This Class represents the connection to the PostgreSQL database.
 
-Example: 
+To instantiate a `DatabaseConnection` object, pass in a hash containing the database connection parameters. [A list of valid parameters](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS) can be found in the PostgreSQL documentations.
+
+Example:
+
 ```ruby
 DatabaseConnection.new(
   {
@@ -25,24 +28,67 @@ DatabaseConnection.new(
 ## OPERATIONS
 
 ### `AddNotNull.rb`
-To instantiate a `AddNotNull` object, pass in a `DatabaseConnection` object, and a `migration_script` hash containing the direction for the migration. 
 
-Example migration script: 
-```ruby 
+To instantiate a `AddNotNull` object, pass in a `DatabaseConnection` object, and a `migration_script` hash containing the direction for the migration.
+
+Example migration scripts:
+
+```json
 {
-  info: {
-    schema: "public",
-    table: "employees",
-    column: "phone"
+  "operation": "add_not_null",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "phone"
   },
-  functions: {
-    up: "SELECT CASE WHEN $1 IS NULL THEN ''0000000000'' ELSE $1 END",
-    down: 'SELECT $1'
+  "functions": {
+    "up": "CASE WHEN phone IS NULL THEN '0000000000' ELSE phone END",
+    "down": "phone"
   }
 }
 ```
 
-Use the `#run` method to start the Expand and Contract process: 
+```json
+{
+  "operation": "rename_column",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "phone",
+    "new_name": "phone_number"
+  }
+}
+```
+
+```json
+{
+  "operation": "add_check_constraint",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "phone",
+    "condition": "phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d'"
+  },
+  "functions": {
+    "up": "CASE WHEN (NOT phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d') THEN '000-000-0000' ELSE phone END",
+    "down": "phone"
+  }
+}
+```
+
+```json
+{
+  "operation": "drop_column",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "phone"
+  }
+}
+```
+
+Use the `#run` method to start the Expand and Contract process:
+
 - User will be prompted whether to execute clean up, which clean up artifacts from any previously aborted `AddNotNull` runs
 - User will be prompted to health check the database prior to the contract phase
 

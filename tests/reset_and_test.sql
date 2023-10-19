@@ -18,18 +18,18 @@ INSERT INTO public.employees VALUES (5, 'Quintin Curry', 29, NULL);
 
 SET SEARCH_PATH = 'laridae_before';
 INSERT INTO employees (id, name, age, phone)
-VALUES (11, 'inserted into laridae_before', 20, '1231231231');
+VALUES (11, 'inserted into laridae_before', 20, '123-123-1231');
 INSERT INTO employees (id, name, age, phone)
 VALUES (12, 'inserted into laridae_before with null', 20, NULL);
 SET SEARCH_PATH = 'laridae_after';
 INSERT INTO employees (id, name, age, phone)
-VALUES (13, 'inserted into laridae_after', 40, '1231231231');
+VALUES (13, 'inserted into laridae_after', 40, '123-123-1231');
 
 SET SEARCH_PATH='laridae_before';
 UPDATE employees 
-  SET phone = '9999999999'
+  SET phone = '999-999-9999'
   WHERE name = 'inserted into laridae_before';
 SET SEARCH_PATH='laridae_after';
 UPDATE employees 
-  SET phone = '8888888888'
+  SET phone = '888-888-8888'
   WHERE name = 'inserted into laridae_after';
