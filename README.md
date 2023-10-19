@@ -1,16 +1,19 @@
 # LARIDAE
 
 ## ABOUT THE PROJECT DIRECTORIES
+
 - `components`: contains `DatabaseConnection.rb`
 - `examples`: specific examples using the `HR_app` example app
 - `operations`: each file contains the definition of a Ruby Class that does a specific operation
 
 ## `DatabaseConnection.rb`
-This Class represents the connection to the PostgreSQL database. 
 
-To instantiate a `DatabaseConnection` object, pass in a hash containing the database connection parameters. [A list of valid parameters](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS) can be found in the PostgreSQL documentations. 
+This Class represents the connection to the PostgreSQL database.
 
-Example: 
+To instantiate a `DatabaseConnection` object, pass in a hash containing the database connection parameters. [A list of valid parameters](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS) can be found in the PostgreSQL documentations.
+
+Example:
+
 ```ruby
 DatabaseConnection.new(
   {
@@ -25,10 +28,12 @@ DatabaseConnection.new(
 ## OPERATIONS
 
 ### `AddNotNull.rb`
-To instantiate a `AddNotNull` object, pass in a `DatabaseConnection` object, and a `migration_script` hash containing the direction for the migration. 
 
-Example migration script: 
-```ruby 
+To instantiate a `AddNotNull` object, pass in a `DatabaseConnection` object, and a `migration_script` hash containing the direction for the migration.
+
+Example migration script:
+
+```ruby
 {
   info: {
     schema: "public",
@@ -42,7 +47,124 @@ Example migration script:
 }
 ```
 
-Use the `#run` method to start the Expand and Contract process: 
+# - adding a new column to a table that is nullable (can have null values)
+
+```ruby
+test_add_column_script = {
+  operation: "add_column",
+  info: {
+    schema: "public",
+    table: "employees",
+    column: {
+      name: "description",
+      type: "text",
+      nullable: true,
+    },
+  }
+}
+```
+
+# - adding a new column to a table with a not null constraint
+
+```ruby
+test_add_column_script = {
+  operation: "add_column",
+  info: {
+    schema: "public",
+    table: "employees",
+    column: {
+      name: "description",
+      type: "text",
+      nullable: true,
+    },
+  }
+}
+```
+
+# - adding a new column to a table with a unique constraint
+
+```ruby
+test_add_column_script = {
+  operation: "add_column",
+  info: {
+    schema: "public",
+    table: "employees",
+    column: {
+      name: "computer_id",
+      type: "integer",
+      unique: true,
+    },
+  }
+}
+```
+
+# adding a new column with a check constraint
+
+```ruby
+test_add_column_script = {
+  operation: "add_column",
+  info: {
+    schema: "public",
+    table: "employees",
+    column: {
+      name: "age_insert_ex",
+      type: "integer",
+      check: {
+        name: "age_check",
+        constraint: "age >= 18"
+      }
+    },
+  }
+}
+```
+
+# setting a unique constraint on a column in a table
+
+Note functions are WRONG and DO NOT work
+
+```ruby
+test_add_column_script = {
+  operation: "set_unique",
+  info: {
+    schema: "public",
+    table: "employees",
+    column: {
+      name: "computer_id",
+    },
+  },
+  functions: {
+    up: "CASE WHEN computer_id IS NOT UNIQUE THEN '0000000000' ELSE phone END",
+    down: "computer_id"
+  }
+}
+```
+
+# adding a foreign key to column
+
+```ruby
+test_add_column_script = {
+  operation: "set_foreign_key",
+  info: {
+    schema: "public",
+    table: "phones_ex",
+    column: {
+      name: "employee_id",
+      references: {
+        name: "fk_employee_id",
+        table: "employees",
+        column: "id",
+      },
+    },
+  },
+  functions: {
+    up: "(SELECT CASE WHEN EXISTS (SELECT 1 FROM employees WHERE employees.id = employee_id) THEN employee_id ELSE NULL END)",
+    down: "employee_id"
+  }
+}
+```
+
+Use the `#run` method to start the Expand and Contract process:
+
 - User will be prompted whether to execute clean up, which clean up artifacts from any previously aborted `AddNotNull` runs
 - User will be prompted to health check the database prior to the contract phase
 

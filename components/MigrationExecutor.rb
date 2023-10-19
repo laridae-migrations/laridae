@@ -1,11 +1,18 @@
 require_relative './TableManipulator'
 require_relative '../operations/AddNotNullHandler'
+require_relative '../operations/add_column'
+require_relative '../operations/set_unique'
+require_relative '../operations/set_fk'
 require 'json'
 
 class MigrationExecutor
   HANDLERS_BY_OPERATION = {
-    "add_not_null" => AddNotNullHandler
+    "add_not_null" => AddNotNullHandler,
+    "add_column" => AddColumnHandler,
+    "set_unique" => SetUniqueHandler,
+    "set_foreign_key" => SetForeignKeyHandler,
   }
+  
   def initialize(db_connection, migration_script)
     @database = db_connection
     @script = JSON.parse(migration_script)
@@ -33,3 +40,5 @@ class MigrationExecutor
     end
   end
 end
+
+
