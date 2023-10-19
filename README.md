@@ -25,6 +25,18 @@ DatabaseConnection.new(
 )
 ```
 
+## SCRIPT VALIDATOR
+Laridae will be configured to run an initial validation check on the migration script and the database. This checks for the valid existence of the entities involved in the migration
+
+The `Validator` class can be run directly, requiring a `DatabaseConnection` object, and a migration script hash
+```ruby
+Validator.new(db_connection, script_migration)
+```
+
+A valid migration will return a hash `{ valid: true }`
+A migration script containing error will return a hash"
+`{ valid: false, message: 'Some error message' }`
+
 ## OPERATIONS
 
 ### `AddNotNull.rb`
