@@ -1,15 +1,12 @@
 require_relative '../components/TableManipulator'
-class AddCheckConstraintHandler
+class AddNotNull
   def initialize(database, script)
     schema = script["info"]["schema"]
     table = script["info"]["table"]
     @column = script["info"]["column"]
     @table_manipulator = TableManipulator.new(database, schema, table)
     @new_column = "laridae_new_#{@column}"
-    @constraint_name = "laridae_constraint_#{@column}_check"
-    # ideally we want to check to make sure they don't reference any other columns
-    # in the check constraint
-    @condition = script["info"]["condition"].gsub(@column, @new_column)
+    @constraint_name = "laridae_constraint_#{@column}_not_null"
     @functions = script["functions"]
   end
 
@@ -20,7 +17,7 @@ class AddCheckConstraintHandler
   end
 
   def expand
-    constraint = "CHECK (#{@condition}) NOT VALID"
+    constraint = "CHECK (#{@new_column} IS NOT NULL) NOT VALID"
     before_view = {@new_column => nil}
     after_view = {@column => nil, @new_column => @column}
     @table_manipulator.create_new_version_of_column(@column)
@@ -36,7 +33,7 @@ class AddCheckConstraintHandler
     @table_manipulator.cleanup
     @table_manipulator.drop_column(@column)
     @table_manipulator.rename_column(@new_column, @column)
-    new_constraint_name = "constraint_#{@column}_check"
+    new_constraint_name = "constraint_#{@column}_not_null"
     @table_manipulator.rename_constraint(@constraint_name, new_constraint_name)
   end
 end

@@ -1,5 +1,5 @@
 require_relative '../components/TableManipulator'
-class AddCheckConstraintHandler
+class AddCheckConstraint
   def initialize(database, script)
     schema = script["info"]["schema"]
     table = script["info"]["table"]

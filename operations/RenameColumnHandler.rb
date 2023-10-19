@@ -1,3 +1,4 @@
+require_relative '../components/TableManipulator'
 class RenameColumnHandler
   def initialize(database, script)
     schema = script["info"]["schema"]
