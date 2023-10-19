@@ -1,0 +1,16 @@
+DROP TABLE IF EXISTS songs CASCADE;
+
+CREATE TABLE songs (
+  id SERIAL PRIMARY KEY, 
+  name TEXT NOT NULL,
+  artist TEXT NOT NULL, 
+  rating FLOAT(1)
+);
+
+INSERT INTO songs (name, artist, rating)
+VALUES 
+  ('Dance All Night', 'The Groovy Beats', NULL), 
+  ('Electric Dreams', 'Phoenix Rain', 4.2),
+  ('Summer Vibes', 'Sunburst Sounds', 3.7),
+  ('Euphoria', 'Stellar', NULL),
+  ('Golden Days', 'Celestial Harmony', 2.3);
