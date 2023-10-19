@@ -165,4 +165,27 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
+
+  def create_index(name, method, column)
+    sql = <<~SQL
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS #{name}
+      ON #{@schema}.#{@table}
+      USING #{method} (#{column})
+    SQL
+    @database.query(sql)
+  end
+  
+  def drop_index(name)
+    sql = <<~SQL
+      DROP INDEX CONCURRENTLY IF EXISTS #{name}
+    SQL
+    @database.query(sql)
+  end
+
+  def rename_index(name, new_name)
+    sql = <<~SQL
+      ALTER INDEX #{name} RENAME TO #{new_name}
+    SQL
+    @database.query(sql)
+  end
 end
