@@ -37,9 +37,9 @@ This class contains logic for interacting directly with the database that is use
 
 To create a TableManipulator, pass in a `DatabaseConnectionObject` and strings containing the schema and table name it will operate on.
 
-## SCRIPT VALIDATOR
+## `Validator.rb`
 
-Laridae will be configured to run an initial validation check on the migration script and the database. This checks for the valid existence of the entities involved in the migration
+This class contains initial checks on the json migration script to vet out any glarring conflicts such as: invalid schema / table / column name, column is a Primary Key, or referenced 
 
 The `Validator` class can be run directly, requiring a `DatabaseConnection` object, and a migration script hash
 
@@ -47,9 +47,16 @@ The `Validator` class can be run directly, requiring a `DatabaseConnection` obje
 Validator.new(db_connection, script_migration).run
 ```
 
-A valid migration will return a hash `{ valid: true }`
-A migration script containing error will return a hash"
-`{ valid: false, message: 'Some error message' }`
+A valid migration will return: 
+```ruby
+{ 'valid' => true }
+```
+
+A migration script containing error will return a hash object similar to:
+```ruby
+{ 'valid' => false, 
+  'message' => 'Some error message' }
+```
 
 ## OPERATIONS
 
