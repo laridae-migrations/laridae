@@ -111,6 +111,18 @@ Example migration scripts:
 }
 ```
 
+```json
+{
+  "operation": "create_index",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "phone",
+    "method": "btree"
+  }
+}
+```
+
 Use the `#run` method to start the Expand and Contract process:
 
 - User will be prompted whether to execute clean up, which clean up artifacts from any previously aborted `AddNotNull` runs

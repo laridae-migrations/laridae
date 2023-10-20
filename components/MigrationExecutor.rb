@@ -1,8 +1,8 @@
-require_relative './TableManipulator'
 require_relative '../operations/AddNotNull'
 require_relative '../operations/RenameColumn'
 require_relative '../operations/AddCheckConstraint'
 require_relative '../operations/DropColumn'
+require_relative '../operations/CreateIndex'
 require 'json'
 
 class MigrationExecutor
@@ -10,7 +10,8 @@ class MigrationExecutor
     "add_not_null" => AddNotNull,
     'rename_column' => RenameColumn,
     'add_check_constraint' => AddCheckConstraint,
-    'drop_column' => DropColumn
+    'drop_column' => DropColumn,
+    'create_index' => CreateIndex
   }
   def initialize(db_connection, migration_script)
     @database = db_connection
