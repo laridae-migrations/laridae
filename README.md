@@ -63,7 +63,7 @@ Its initializer takes a `DatabaseConnectionObject` for the database where the mi
 
 ## SCRIPT VALIDATOR
 
-This class contains initial checks on the json migration script to vet out any glarring conflicts such as: invalid schema / table / column name, column is a Primary Key, or referenced 
+This class contains initial checks on the json migration script to vet out any glarring conflicts such as: invalid schema / table / column name, column is a Primary Key, or referenced
 
 The `Validator` class can be run directly, requiring a `DatabaseConnection` object, and a migration script hash
 
@@ -71,20 +71,22 @@ The `Validator` class can be run directly, requiring a `DatabaseConnection` obje
 Validator.new(db_connection, script_migration).run
 ```
 
-A valid migration will return: 
+A valid migration will return:
+
 ```ruby
 { 'valid' => true }
 ```
 
 A migration script containing error will return a hash object similar to:
+
 ```ruby
-{ 'valid' => false, 
+{ 'valid' => false,
   'message' => 'Some error message' }
 ```
 
 ## OPERATIONS
 
-The details of performing expand/contract/rollback for each operation are the responsibility of classes defined in the operations directory. Each of these classes takes a `DatabaseConnection` object, and a `migration_script` hash containing the necessary data for the migration.
+The details of performing expand/contract/rollback for each operation are the responsibility of classes defined in the operations directory. Each of these classes takes a `DatabaseConnection` object, and a `migration_script` hash containing the necessary data for the migration. They expose `expand`, `contract`, and `rollback` methods for performing those actions for the supplied migration script.
 
 Example migration scripts:
 
@@ -269,11 +271,6 @@ test_add_column_script = {
   }
 }
 ```
-
-Use the `#run` method to start the Expand and Contract process:
-
-- User will be prompted whether to execute clean up, which clean up artifacts from any previously aborted `AddNotNull` runs
-- User will be prompted to health check the database prior to the contract phase
 
 ## SPECIFIC EXAMPLES
 
