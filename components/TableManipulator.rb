@@ -1,13 +1,10 @@
-# rubocop:disable allcops
-BATCH_SIZE = 400
-
 class TableManipulator
   def initialize(database, schema, table)
     @database = database
     @schema = schema
     @table = table
   end
-
+  
   def cleanup
     sql = <<~SQL
     DROP SCHEMA IF EXISTS laridae_before CASCADE;
@@ -16,7 +13,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def get_all_columns_names
     sql = <<~SQL
       SELECT column_name
@@ -26,7 +23,7 @@ class TableManipulator
     result = @database.query(sql, [@schema, @table])
     result.map { |line| line["column_name"] }
   end
-
+  
   def get_column_type(column_name)
     sql = <<~SQL
       SELECT data_type 
@@ -39,7 +36,7 @@ class TableManipulator
       .map { |tuple| tuple['data_type'] }
       .first
   end
-
+  
   def sql_to_declare_variables
     sql = ''
     get_all_columns_names.each do |column|
@@ -47,7 +44,7 @@ class TableManipulator
     end
     sql
   end
-
+  
   def create_trigger_function(old_column, new_column, up, down)
     fixed_down = down.gsub(old_column, new_column)
     sql = <<~SQL
@@ -74,7 +71,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def create_trigger(old_column, new_column, up, down)
     create_trigger_function(old_column, new_column, up, down)
     sql_create_trigger = <<~SQL
@@ -85,12 +82,12 @@ class TableManipulator
     SQL
     @database.query(sql_create_trigger)
   end
-
+  
   def total_rows_count
     sql = "SELECT COUNT(*) FROM #{@schema}.#{@table};"
     @database.query(sql).first['count'].to_i
   end
-
+  
   def get_primary_key_column
     sql = <<~SQL
       SELECT c.column_name
@@ -103,10 +100,10 @@ class TableManipulator
     SQL
     @database.query(sql).first['column_name']
   end
-
+  
   def backfill(new_column, up)
     pkey_column = get_primary_key_column
-
+  
     (0..total_rows_count).step(BATCH_SIZE) do |offset|
       sql = <<~SQL
         WITH rows AS 
@@ -116,13 +113,13 @@ class TableManipulator
         WHERE EXISTS 
           (SELECT * FROM rows WHERE #{@table}.#{pkey_column} = rows.#{pkey_column});
       SQL
-
+  
       @database.query(sql)
       
       sleep(2)
     end
   end
-
+  
   def create_view(schema, view)
     columns_in_view = []
     get_all_columns_names.each do |name|
@@ -141,7 +138,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def rename_column(old_name, new_name)
     sql = <<~SQL
       ALTER TABLE #{@schema}.#{@table}
@@ -149,7 +146,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def drop_column(column_name)
     sql = <<~SQL
       ALTER TABLE #{@schema}.#{@table}
@@ -157,7 +154,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def create_new_version_of_column(old_column)
     sql = <<~SQL
       ALTER TABLE #{@schema}.#{@table}
@@ -165,7 +162,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def add_constraint(name, constraint)
     sql = <<~SQL
       ALTER TABLE #{@schema}.#{@table}
@@ -173,7 +170,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def remove_constraint(name)
     sql = <<~SQL
       ALTER TABLE #{@schema}.#{@table}
@@ -181,7 +178,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def rename_constraint(old_name, new_name)
     sql = <<~SQL
       ALTER TABLE #{@schema}.#{@table}
@@ -189,7 +186,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def validate_constraint(constraint_name)
     sql = <<~SQL
       ALTER TABLE #{@table} 
@@ -197,7 +194,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def create_index(name, method, column)
     sql = <<~SQL
       CREATE INDEX CONCURRENTLY IF NOT EXISTS #{name}
@@ -213,7 +210,7 @@ class TableManipulator
     SQL
     @database.query(sql)
   end
-
+  
   def rename_index(name, new_name)
     sql = <<~SQL
       ALTER INDEX #{name} RENAME TO #{new_name}
