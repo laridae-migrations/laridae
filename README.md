@@ -1,8 +1,26 @@
 # LARIDAE
 
+## CLI
+
+To use the cli, first run
+`./laridae init [DATABASE URL]`
+
+Then, to expand, run
+`./laridae expand [migration script filepath]`
+
+It outputs the URL where the new schema is available.
+
+To contract, completing the migration, run
+`./laridae contract`
+
+To reverse the changes done in the expand phase, run
+`./laridae rollback`
+
+Only one migration in a given database may be run at a time.
+
 ## ABOUT THE PROJECT DIRECTORIES
 
-- `components`: contains `DatabaseConnection.rb`, `MigrationExecutor.rb`, and `TableManipulator.rb`
+- `components`: contains `DatabaseConnection.rb`, `MigrationExecutor.rb`, `TableManipulator.rb`, and `MigrationRecordkeeper.rb`.
 - `examples`: specific examples using the `HR_app` example app
 - `operations`: each file contains the definition of a Ruby class responsible for a specific operation
 
@@ -27,9 +45,9 @@ DatabaseConnection.new(
 
 ## `MigrationExecutor.rb`
 
-This class is responsible for orchestrating the migration at a high-level: it deals with parsing the JSON of the migration script into a Ruby hash, prompting the user to choose actions throughout the migration, and delegating the individual migration steps to appropriate classes.
+This class is responsible for orchestrating the migration at a high-level: it deals with parsing the user's command-line arguments, storing and accessing the database URL, parsing the JSON of the migration script into a Ruby hash, prompting the user to choose actions during the migration, and delegating the individual migration steps to appropriate classes.
 
-Its initializer takes two arguments, a `DatabaseConnection` object and a JSON object containing the migration script
+Its initializer takes no arguments.
 
 ## `TableManipulator.rb`
 
@@ -37,7 +55,13 @@ This class contains logic for interacting directly with the database that is use
 
 To create a TableManipulator, pass in a `DatabaseConnectionObject` and strings containing the schema and table name it will operate on.
 
-## `Validator.rb`
+## `MigrationRecordkeeper.rb`
+
+This class is responsible for keeping track of the currently open migration. It stores the migration script for the open migration in the table "laridae.open_migration" and exposes methods for creating/reading/removing an open migration.
+
+Its initializer takes a `DatabaseConnectionObject` for the database where the migration info should be stored.
+
+## SCRIPT VALIDATOR
 
 This class contains initial checks on the json migration script to vet out any glarring conflicts such as: invalid schema / table / column name, column is a Primary Key, or referenced 
 
