@@ -1,3 +1,6 @@
+# rubocop:disable allcops
+BATCH_SIZE = 400
+
 class TableManipulator
   def initialize(database, schema, table)
     @database = database
@@ -83,12 +86,41 @@ class TableManipulator
     @database.query(sql_create_trigger)
   end
 
-  def backfill(new_column, up)
+  def total_rows_count
+    sql = "SELECT COUNT(*) FROM #{@schema}.#{@table};"
+    @database.query(sql).first['count'].to_i
+  end
+
+  def get_primary_key_column
     sql = <<~SQL
-      UPDATE #{@schema}.#{@table}
-      SET #{new_column} = #{up};
+      SELECT c.column_name
+      FROM information_schema.key_column_usage AS c
+        JOIN information_schema.table_constraints AS t
+        ON t.constraint_name = c.constraint_name
+      WHERE c.constraint_schema = '#{@schema}'
+        AND t.table_name = '#{@table}'
+        AND t.constraint_type = 'PRIMARY KEY';
     SQL
-    @database.query(sql)
+    @database.query(sql).first['column_name']
+  end
+
+  def backfill(new_column, up)
+    pkey_column = get_primary_key_column
+
+    (0..total_rows_count).step(BATCH_SIZE) do |offset|
+      sql = <<~SQL
+        WITH rows AS 
+          (SELECT #{pkey_column} FROM #{@table} ORDER BY #{pkey_column} 
+           LIMIT #{BATCH_SIZE} OFFSET #{offset})
+        UPDATE #{@table} SET #{new_column} = #{up}
+        WHERE EXISTS 
+          (SELECT * FROM rows WHERE #{@table}.#{pkey_column} = rows.#{pkey_column});
+      SQL
+
+      @database.query(sql)
+      
+      sleep(2)
+    end
   end
 
   def create_view(schema, view)
