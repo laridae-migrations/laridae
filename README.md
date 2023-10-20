@@ -154,6 +154,122 @@ Example migration scripts:
 }
 ```
 
+# - adding a new column to a table that is nullable (can have null values)
+
+```ruby
+test_add_column_script = {
+  operation: "add_column",
+  info: {
+    schema: "public",
+    table: "employees",
+    column: {
+      name: "description",
+      type: "text",
+      nullable: true,
+    },
+  }
+}
+```
+
+# - adding a new column to a table with a not null constraint
+
+```ruby
+test_add_column_script = {
+  operation: "add_column",
+  info: {
+    schema: "public",
+    table: "employees",
+    column: {
+      name: "description",
+      type: "text",
+      nullable: true,
+    },
+  }
+}
+```
+
+# - adding a new column to a table with a unique constraint
+
+```ruby
+test_add_column_script = {
+  operation: "add_column",
+  info: {
+    schema: "public",
+    table: "employees",
+    column: {
+      name: "computer_id",
+      type: "integer",
+      unique: true,
+    },
+  }
+}
+```
+
+# adding a new column with a check constraint
+
+```ruby
+test_add_column_script = {
+  operation: "add_column",
+  info: {
+    schema: "public",
+    table: "employees",
+    column: {
+      name: "age_insert_ex",
+      type: "integer",
+      check: {
+        name: "age_check",
+        constraint: "age >= 18"
+      }
+    },
+  }
+}
+```
+
+# setting a unique constraint on a column in a table
+
+Note functions are WRONG and DO NOT work
+
+```ruby
+test_add_column_script = {
+  operation: "set_unique",
+  info: {
+    schema: "public",
+    table: "employees",
+    column: {
+      name: "computer_id",
+    },
+  },
+  functions: {
+    up: "CASE WHEN computer_id IS NOT UNIQUE THEN '0000000000' ELSE phone END",
+    down: "computer_id"
+  }
+}
+```
+
+# adding a foreign key to column
+
+```ruby
+test_add_column_script = {
+  operation: "set_foreign_key",
+  info: {
+    schema: "public",
+    table: "phones_ex",
+    column: {
+      name: "employee_id",
+      references: {
+        name: "fk_employee_id",
+        table: "employees",
+        column: "id",
+      },
+    },
+  },
+  functions: {
+    up: "(SELECT CASE WHEN EXISTS (SELECT 1 FROM employees WHERE employees.id = employee_id) THEN employee_id ELSE NULL END)",
+    down: "employee_id"
+  }
+}
+```
+
 Use the `#run` method to start the Expand and Contract process:
 
 - User will be prompted whether to execute clean up, which clean up artifacts from any previously aborted `AddNotNull` runs

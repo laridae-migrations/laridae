@@ -40,6 +40,24 @@ class TableManipulator
       .first
   end
 
+  def get_column_default_value(column_name)
+    sql = <<~SQL
+      SELECT col.table_schema,
+        col.table_name,
+        col.column_name,
+        col.column_default
+      FROM information_schema.columns col
+      WHERE col.column_default IS NOT NULL
+        AND col.table_schema NOT IN('information_schema', 'pg_catalog')
+        AND col.column_name = $1
+        AND col.table_name = $2; 
+    SQL
+    # need to have column name in single quotes?
+    
+    result = @database.query(sql, [column_name, @table])
+    result.field_values('column_default').first
+  end
+
   def sql_to_declare_variables
     sql = ''
     get_all_columns_names.each do |column|
@@ -139,6 +157,35 @@ class TableManipulator
       CREATE VIEW #{schema}.#{@table} AS 
       SELECT #{columns_in_view.join(", ")} from #{@schema}.#{@table};
     SQL
+    @database.query(sql)
+  end
+
+  def add_column(table, new_column, data_type, default_value, is_unique)
+    # faster to split up the two actions
+    if is_unique 
+      if default_value.nil?
+        sql = <<~SQL
+          ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type} UNIQUE;
+        SQL
+      else
+        sql = <<~SQL
+          ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type} UNIQUE;
+          UPDATE #{@schema}.#{@table} SET #{new_column} = '#{default_value}';
+        SQL
+      end
+    else
+      if default_value.nil?
+        sql = <<~SQL
+          ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type};
+        SQL
+      else
+        sql = <<~SQL
+          ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type};
+          UPDATE #{@schema}.#{@table} SET #{new_column} = '#{default_value}';
+        SQL
+      end
+    end
+    p sql
     @database.query(sql)
   end
 

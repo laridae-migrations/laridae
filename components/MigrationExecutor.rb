@@ -1,3 +1,7 @@
+require_relative '../operations/AddNotNullHandler'
+require_relative '../operations/add_column'
+require_relative '../operations/set_unique'
+require_relative '../operations/set_fk'
 require_relative './DatabaseConnection'
 require_relative './MigrationRecordkeeper'
 require_relative '../operations/AddNotNull'
@@ -14,7 +18,10 @@ class MigrationExecutor
     'rename_column' => RenameColumn,
     'add_check_constraint' => AddCheckConstraint,
     'drop_column' => DropColumn,
-    'create_index' => CreateIndex
+    'create_index' => CreateIndex,
+    "add_column" => AddColumnHandler,
+    "set_unique" => SetUniqueHandler,
+    "set_foreign_key" => SetForeignKeyHandler
   }
   def initialize
     @database = nil
@@ -131,3 +138,5 @@ class MigrationExecutor
     puts "Rollback complete"
   end
 end
+
+
