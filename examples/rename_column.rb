@@ -3,16 +3,13 @@ require_relative '../components/MigrationExecutor'
 require_relative '../components/DatabaseConnection'
 
 script = {
-  operation: "add_not_null",
+  operation: "rename_column",
   info: {
     schema: "public",
     table: "employees",
-    column: "phone"
+    column: "phone",
+    new_name: "phone_number"
   },
-  functions: {
-    up: "CASE WHEN phone IS NULL THEN '0000000000' ELSE phone END",
-    down: "phone"
-  }
 }
 
 db = DatabaseConnection.new(

@@ -1,4 +1,5 @@
-class AddNotNullHandler
+require_relative '../components/TableManipulator'
+class AddNotNull
   def initialize(database, script)
     schema = script["info"]["schema"]
     table = script["info"]["table"]
@@ -21,8 +22,8 @@ class AddNotNullHandler
     after_view = {@column => nil, @new_column => @column}
     @table_manipulator.create_new_version_of_column(@column)
     @table_manipulator.add_constraint(@constraint_name, constraint)
-    @table_manipulator.create_view("before", before_view)
-    @table_manipulator.create_view("after", after_view)
+    @table_manipulator.create_view("laridae_before", before_view)
+    @table_manipulator.create_view("laridae_after", after_view)
     @table_manipulator.create_trigger(@column, @new_column, @functions["up"], @functions["down"])
     @table_manipulator.backfill(@new_column, @functions["up"])
     @table_manipulator.validate_constraint(@constraint_name)

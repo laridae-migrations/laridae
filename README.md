@@ -1,14 +1,32 @@
 # LARIDAE
 
+## CLI
+
+To use the cli, first run
+`./laridae init [DATABASE URL]`
+
+Then, to expand, run
+`./laridae expand [migration script filepath]`
+
+It outputs the URL where the new schema is available.
+
+To contract, completing the migration, run
+`./laridae contract`
+
+To reverse the changes done in the expand phase, run
+`./laridae rollback`
+
+Only one migration in a given database may be run at a time.
+
 ## ABOUT THE PROJECT DIRECTORIES
 
-- `components`: contains `DatabaseConnection.rb`
+- `components`: contains `DatabaseConnection.rb`, `MigrationExecutor.rb`, `TableManipulator.rb`, and `MigrationRecordkeeper.rb`.
 - `examples`: specific examples using the `HR_app` example app
-- `operations`: each file contains the definition of a Ruby Class that does a specific operation
+- `operations`: each file contains the definition of a Ruby class responsible for a specific operation
 
 ## `DatabaseConnection.rb`
 
-This Class represents the connection to the PostgreSQL database.
+This class represents the connection to the PostgreSQL database.
 
 To instantiate a `DatabaseConnection` object, pass in a hash containing the database connection parameters. [A list of valid parameters](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS) can be found in the PostgreSQL documentations.
 
@@ -25,24 +43,113 @@ DatabaseConnection.new(
 )
 ```
 
-## OPERATIONS
+## `MigrationExecutor.rb`
 
-### `AddNotNull.rb`
+This class is responsible for orchestrating the migration at a high-level: it deals with parsing the user's command-line arguments, storing and accessing the database URL, parsing the JSON of the migration script into a Ruby hash, prompting the user to choose actions during the migration, and delegating the individual migration steps to appropriate classes.
 
-To instantiate a `AddNotNull` object, pass in a `DatabaseConnection` object, and a `migration_script` hash containing the direction for the migration.
+Its initializer takes no arguments.
 
-Example migration script:
+## `TableManipulator.rb`
+
+This class contains logic for interacting directly with the database that is used by various operations: some of these tasks are specific to expand-and-contract, like creating triggers and backfilling, whereas others are common database operations like adding a constraint or dropping a column.
+
+To create a TableManipulator, pass in a `DatabaseConnectionObject` and strings containing the schema and table name it will operate on.
+
+## `MigrationRecordkeeper.rb`
+
+This class is responsible for keeping track of the currently open migration. It stores the migration script for the open migration in the table "laridae.open_migration" and exposes methods for creating/reading/removing an open migration.
+
+Its initializer takes a `DatabaseConnectionObject` for the database where the migration info should be stored.
+
+## SCRIPT VALIDATOR
+
+This class contains initial checks on the json migration script to vet out any glarring conflicts such as: invalid schema / table / column name, column is a Primary Key, or referenced 
+
+The `Validator` class can be run directly, requiring a `DatabaseConnection` object, and a migration script hash
 
 ```ruby
+Validator.new(db_connection, script_migration).run
+```
+
+A valid migration will return: 
+```ruby
+{ 'valid' => true }
+```
+
+A migration script containing error will return a hash object similar to:
+```ruby
+{ 'valid' => false, 
+  'message' => 'Some error message' }
+```
+
+## OPERATIONS
+
+The details of performing expand/contract/rollback for each operation are the responsibility of classes defined in the operations directory. Each of these classes takes a `DatabaseConnection` object, and a `migration_script` hash containing the necessary data for the migration.
+
+Example migration scripts:
+
+```json
 {
-  info: {
-    schema: "public",
-    table: "employees",
-    column: "phone"
+  "operation": "add_not_null",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "phone"
   },
-  functions: {
-    up: "SELECT CASE WHEN $1 IS NULL THEN ''0000000000'' ELSE $1 END",
-    down: 'SELECT $1'
+  "functions": {
+    "up": "CASE WHEN phone IS NULL THEN '0000000000' ELSE phone END",
+    "down": "phone"
+  }
+}
+```
+
+```json
+{
+  "operation": "rename_column",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "phone",
+    "new_name": "phone_number"
+  }
+}
+```
+
+```json
+{
+  "operation": "add_check_constraint",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "phone",
+    "condition": "phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d'"
+  },
+  "functions": {
+    "up": "CASE WHEN (NOT phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d') THEN '000-000-0000' ELSE phone END",
+    "down": "phone"
+  }
+}
+```
+
+```json
+{
+  "operation": "drop_column",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "phone"
+  }
+}
+```
+
+```json
+{
+  "operation": "create_index",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "phone",
+    "method": "btree"
   }
 }
 ```
@@ -170,15 +277,13 @@ Use the `#run` method to start the Expand and Contract process:
 
 ## SPECIFIC EXAMPLES
 
-### `add_not_null.rb`
+## TESTING
 
-A prototype of our functionality in a simple set use-case:
+Testing is done using `rspec`, all specs can be found in `\tests`
+`\test_data` contain `.pglsql` data for spec files, each spec handles its own data population
 
-Adding the `NOT NULL` constraint to the `phone` column by:
+To run a spec:
 
-- Create a column `phone_not_null` with the `NOT NULL` as a table constraint
-- Create 2 views: `before` and `after`
-- Add triggers to propagate data between `phone` and `phone_not_null` on inserts and updates
-- Backfilling `phone_not_null` with `'0000000000'`
-- Validate the table `NOT NULL` constraint
-- Prompt the user whether or not to contract: delete all views, triggers, functions, delete `phone`, rename `phone_not_null` to `phone`
+```
+rspec tests/spec_file_name.rb
+```
