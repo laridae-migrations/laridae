@@ -1,6 +1,8 @@
 require_relative '../components/TableManipulator'
-class AddNotNull
+require_relative './Operation'
+class AddNotNull < Operation
   def initialize(database, script)
+    super(database)
     schema = script["info"]["schema"]
     table = script["info"]["table"]
     @column = script["info"]["column"]
@@ -16,13 +18,12 @@ class AddNotNull
     @table_manipulator.remove_constraint(@constraint_name)
   end
 
-  def expand
+  def expand_step(after_view)
     constraint = "CHECK (#{@new_column} IS NOT NULL) NOT VALID"
-    before_view = {@new_column => nil}
-    after_view = {@column => nil, @new_column => @column}
+    after_view[@column] = nil
+    after_view[@new_column] = @column
     @table_manipulator.create_new_version_of_column(@column)
     @table_manipulator.add_constraint(@constraint_name, constraint)
-    @table_manipulator.create_view("laridae_before", before_view)
     @table_manipulator.create_view("laridae_after", after_view)
     @table_manipulator.create_trigger(@column, @new_column, @functions["up"], @functions["down"])
     @table_manipulator.backfill(@new_column, @functions["up"])

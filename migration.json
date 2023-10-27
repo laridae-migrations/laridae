@@ -1,12 +1,24 @@
-{
-  "operation": "add_not_null",
-  "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone"
+[
+  {
+    "operation": "add_check_constraint",
+    "info": {
+      "schema": "public",
+      "table": "employees",
+      "column": "phone",
+      "condition": "phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d'"
+    },
+    "functions": {
+      "up": "CASE WHEN (NOT phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d') THEN '000-000-0000' ELSE phone END",
+      "down": "phone"
+    }
   },
-  "functions": {
-    "up": "CASE WHEN phone IS NULL THEN '0000000000' ELSE phone END",
-    "down": "phone"
+  {
+    "operation": "rename_column",
+    "info": {
+      "schema": "public",
+      "table": "employees",
+      "column": "name",
+      "new_name": "full_name"
+    }
   }
-}
+]

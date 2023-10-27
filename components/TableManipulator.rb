@@ -8,15 +8,6 @@ class TableManipulator
     @table = table
   end
 
-  def cleanup
-    sql = <<~SQL
-    DROP SCHEMA IF EXISTS laridae_before CASCADE;
-    DROP SCHEMA IF EXISTS laridae_after CASCADE;
-    DROP SCHEMA IF EXISTS laridae_temp CASCADE;
-    SQL
-    @database.query(sql)
-  end
-
   def get_all_columns_names
     sql = <<~SQL
       SELECT column_name
@@ -139,25 +130,6 @@ class TableManipulator
       
       sleep(2)
     end
-  end
-
-  def create_view(schema, view)
-    columns_in_view = []
-    get_all_columns_names.each do |name|
-      if view.key?(name)
-        if view[name] != nil
-          columns_in_view.push("#{name} AS #{view[name]}")
-        end
-      else
-        columns_in_view.push(name)
-      end
-    end
-    sql = <<~SQL
-      CREATE SCHEMA #{schema}
-      CREATE VIEW #{schema}.#{@table} AS 
-      SELECT #{columns_in_view.join(", ")} from #{@schema}.#{@table};
-    SQL
-    @database.query(sql)
   end
 
   def add_column(table, new_column, data_type, default_value, is_unique)

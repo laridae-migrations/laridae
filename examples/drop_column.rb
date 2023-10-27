@@ -2,14 +2,16 @@ require 'json'
 require_relative '../components/MigrationExecutor'
 require_relative '../components/DatabaseConnection'
 
-script = {
-  operation: "drop_column",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: "phone",
-  },
+script = [
+  {
+    operation: "drop_column",
+    info: {
+      schema: "public",
+      table: "employees",
+      column: "phone",
+    },
 }
+]
 
 db = DatabaseConnection.new(
   {

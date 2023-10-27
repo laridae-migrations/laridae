@@ -91,140 +91,158 @@ The details of performing expand/contract/rollback for each operation are the re
 Example migration scripts:
 
 ```json
-{
-  "operation": "add_not_null",
-  "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone"
-  },
-  "functions": {
-    "up": "CASE WHEN phone IS NULL THEN '0000000000' ELSE phone END",
-    "down": "phone"
+[
+  {
+    "operation": "add_not_null",
+    "info": {
+      "schema": "public",
+      "table": "employees",
+      "column": "phone"
+    },
+    "functions": {
+      "up": "CASE WHEN phone IS NULL THEN '0000000000' ELSE phone END",
+      "down": "phone"
+    }
   }
-}
+]
 ```
 
 ```json
-{
-  "operation": "rename_column",
-  "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone",
-    "new_name": "phone_number"
+[
+  {
+    "operation": "rename_column",
+    "info": {
+      "schema": "public",
+      "table": "employees",
+      "column": "phone",
+      "new_name": "phone_number"
+    }
   }
-}
+]
 ```
 
 ```json
-{
-  "operation": "add_check_constraint",
-  "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone",
-    "condition": "phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d'"
-  },
-  "functions": {
-    "up": "CASE WHEN (NOT phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d') THEN '000-000-0000' ELSE phone END",
-    "down": "phone"
+[
+  {
+    "operation": "add_check_constraint",
+    "info": {
+      "schema": "public",
+      "table": "employees",
+      "column": "phone",
+      "condition": "phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d'"
+    },
+    "functions": {
+      "up": "CASE WHEN (NOT phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d') THEN '000-000-0000' ELSE phone END",
+      "down": "phone"
+    }
   }
-}
+]
 ```
 
 ```json
-{
-  "operation": "drop_column",
-  "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone"
+[
+  {
+    "operation": "drop_column",
+    "info": {
+      "schema": "public",
+      "table": "employees",
+      "column": "phone"
+    }
   }
-}
+]
 ```
 
 ```json
-{
-  "operation": "create_index",
-  "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone",
-    "method": "btree"
+[
+  {
+    "operation": "create_index",
+    "info": {
+      "schema": "public",
+      "table": "employees",
+      "column": "phone",
+      "method": "btree"
+    }
   }
-}
+]
 ```
 
 # - adding a new column to a table that is nullable (can have null values)
 
 ```ruby
-test_add_column_script = {
-  operation: "add_column",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: {
-      name: "description",
-      type: "text",
-      nullable: true,
-    },
+test_add_column_script = [
+  {
+    operation: "add_column",
+    info: {
+      schema: "public",
+      table: "employees",
+      column: {
+        name: "description",
+        type: "text",
+        nullable: true,
+      },
+    }
   }
-}
+]
 ```
 
 # - adding a new column to a table with a not null constraint
 
 ```ruby
-test_add_column_script = {
-  operation: "add_column",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: {
-      name: "description",
-      type: "text",
-      nullable: true,
-    },
+test_add_column_script = [
+  {
+    operation: "add_column",
+    info: {
+      schema: "public",
+      table: "employees",
+      column: {
+        name: "description",
+        type: "text",
+        nullable: true,
+      },
+    }
   }
-}
+]
 ```
 
 # - adding a new column to a table with a unique constraint
 
 ```ruby
-test_add_column_script = {
-  operation: "add_column",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: {
-      name: "computer_id",
-      type: "integer",
-      unique: true,
-    },
+test_add_column_script = [
+  {
+    operation: "add_column",
+    info: {
+      schema: "public",
+      table: "employees",
+      column: {
+        name: "computer_id",
+        type: "integer",
+        unique: true,
+      },
+    }
   }
-}
+]
 ```
 
 # adding a new column with a check constraint
 
 ```ruby
-test_add_column_script = {
-  operation: "add_column",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: {
-      name: "age_insert_ex",
-      type: "integer",
-      check: {
-        name: "age_check",
-        constraint: "age >= 18"
-      }
-    },
+test_add_column_script = [
+  {
+    operation: "add_column",
+    info: {
+      schema: "public",
+      table: "employees",
+      column: {
+        name: "age_insert_ex",
+        type: "integer",
+        check: {
+          name: "age_check",
+          constraint: "age >= 18"
+        }
+      },
+    }
   }
-}
+]
 ```
 
 # setting a unique constraint on a column in a table
@@ -232,44 +250,48 @@ test_add_column_script = {
 Note functions are WRONG and DO NOT work
 
 ```ruby
-test_add_column_script = {
-  operation: "add_unique_constraint",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: {
-      name: "computer_id",
+test_add_column_script = [
+  {
+    operation: "add_unique_constraint",
+    info: {
+      schema: "public",
+      table: "employees",
+      column: {
+        name: "computer_id",
+      },
     },
-  },
-  functions: {
-    up: "CASE WHEN computer_id IS NOT UNIQUE THEN '0000000000' ELSE phone END",
-    down: "computer_id"
+    functions: {
+      up: "CASE WHEN computer_id IS NOT UNIQUE THEN '0000000000' ELSE phone END",
+      down: "computer_id"
+    }
   }
-}
+]
 ```
 
 # adding a foreign key to column
 
 ```ruby
-test_add_column_script = {
-  operation: "add_foreign_key_constraint",
-  info: {
-    schema: "public",
-    table: "phones_ex",
-    column: {
-      name: "employee_id",
-      references: {
-        name: "fk_employee_id",
-        table: "employees",
-        column: "id",
+test_add_column_script = [
+  {
+    operation: "add_foreign_key_constraint",
+    info: {
+      schema: "public",
+      table: "phones_ex",
+      column: {
+        name: "employee_id",
+        references: {
+          name: "fk_employee_id",
+          table: "employees",
+          column: "id",
+        },
       },
     },
-  },
-  functions: {
-    up: "(SELECT CASE WHEN EXISTS (SELECT 1 FROM employees WHERE employees.id = employee_id) THEN employee_id ELSE NULL END)",
-    down: "employee_id"
+    functions: {
+      up: "(SELECT CASE WHEN EXISTS (SELECT 1 FROM employees WHERE employees.id = employee_id) THEN employee_id ELSE NULL END)",
+      down: "employee_id"
+    }
   }
-}
+]
 ```
 
 ## SPECIFIC EXAMPLES

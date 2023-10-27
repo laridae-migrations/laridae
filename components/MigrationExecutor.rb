@@ -1,5 +1,6 @@
 require_relative './DatabaseConnection'
 require_relative './MigrationRecordkeeper'
+require_relative './DatabaseManipulator'
 
 require_relative '../operations/AddColumn'
 require_relative '../operations/AddUniqueConstraint'
@@ -12,6 +13,9 @@ require_relative '../operations/CreateIndex'
 require 'json'
 
 class MigrationExecutor
+  BEFORE_SCHEMA = "laridae_before"
+  AFTER_SCHEMA = "laridae_after"
+  TEMP_SCHEMA = "laridae_temp"
   DB_URL_FILENAME = "#{__dir__}/.laridae_database_url.txt"
   HANDLERS_BY_OPERATION = {
     "add_not_null" => AddNotNull,
@@ -25,6 +29,8 @@ class MigrationExecutor
   }
   def initialize
     @database = nil
+    @migration_recordkeeper = nil
+    @database_manipulator = nil
   end
 
   def run_command(command_line_arguments)
@@ -56,9 +62,9 @@ class MigrationExecutor
   def new_schema_search_path
     db_url = File.open(DB_URL_FILENAME).read
     if db_url.include?("?")
-      "#{db_url}&currentSchema=laridae_after,public"
+      "#{db_url}&currentSchema=#{AFTER_SCHEMA},public"
     else
-      "#{db_url}?currentSchema=laridae_after,public"
+      "#{db_url}?currentSchema=#{AFTER_SCHEMA},public"
     end
   end
 
@@ -75,6 +81,7 @@ class MigrationExecutor
     @database = DatabaseConnection.new(db_url)
     MigrationRecordkeeper.new(@database).create_open_migration_table
     @database.close
+    puts "Initialization complete."
   end
 
   def operation_handler_for_script(script)
@@ -82,9 +89,7 @@ class MigrationExecutor
     HANDLERS_BY_OPERATION[operation_name].new(@database, script)
   end
 
-  def expand(filename)
-    @database = database_connection_from_file
-    migration_recordkeeper = MigrationRecordkeeper.new(@database)
+  def migration_script_from_file(filename)
     if !filename.end_with?(".json")
       puts "Migration script #{filename} must be JSON."
       return
@@ -95,48 +100,69 @@ class MigrationExecutor
       puts "Migration script \"#{filename}\" not found."
       return
     end
-    if migration_recordkeeper.open_migration?
+    if @migration_recordkeeper.open_migration?
       puts "Another migration is currently running; cannot continue."
       return
     end
     migration_script = migration_script_file.read
-    script_hash = JSON.parse(migration_script)
-    operation_handler = operation_handler_for_script(script_hash)
+    JSON.parse(migration_script)
+  end
+
+  def expand(filename)
+    @database = database_connection_from_file
+    @database_manipulator = DatabaseManipulator.new(@database)
+    @migration_recordkeeper = MigrationRecordkeeper.new(@database)
+    script_object = migration_script_from_file(filename)
     puts "Should clean up be done on the database (Y/N)"
     choice = STDIN.gets.chomp.upcase
-    operation_handler.rollback if choice == 'Y' 
-    operation_handler.expand
-    migration_recordkeeper.record_new_migration(migration_script)
+    if choice == 'Y'
+      @database_manipulator.cleanup
+    end
+    before_snapshot = Snapshot.new(@database, BEFORE_SCHEMA)
+    after_snapshot = Snapshot.new(@database, AFTER_SCHEMA)
+    script_object.each do |operation|
+      operation_handler = operation_handler_for_script(operation)
+      operation_handler.expand_step(before_snapshot, after_snapshot)
+    end
+    before_snapshot.create
+    after_snapshot.create
+    @migration_recordkeeper.record_new_migration(script_object)
     puts "Expand complete: new schema available at #{new_schema_search_path}"
   end
 
   def contract
     @database = database_connection_from_file
-    migration_recordkeeper = MigrationRecordkeeper.new(@database)
-    if !migration_recordkeeper.open_migration?
+    @database_manipulator = DatabaseManipulator.new(@database)
+    @migration_recordkeeper = MigrationRecordkeeper.new(@database)
+    if !@migration_recordkeeper.open_migration?
       puts "No open migration; cannot contract."
     end
-    migration_script = migration_recordkeeper.open_migration
-    script_hash = JSON.parse(migration_script)
-    operation_handler = operation_handler_for_script(script_hash)
-    operation_handler.contract
-    migration_recordkeeper.remove_current_migration
+    migration_script = @migration_recordkeeper.open_migration
+    script_object = JSON.parse(migration_script)
+    @database_manipulator.cleanup
+    script_object.reverse.each do |operation|
+      operation_handler = operation_handler_for_script(operation)
+      operation_handler.contract_step
+    end
+    @migration_recordkeeper.remove_current_migration
     puts "Contract complete"
   end
 
   def rollback
     @database = database_connection_from_file
-    migration_recordkeeper = MigrationRecordkeeper.new(@database)
-    if !migration_recordkeeper.open_migration?
+    @database_manipulator = DatabaseManipulator.new(@database)
+    @migration_recordkeeper = MigrationRecordkeeper.new(@database)
+    if !@migration_recordkeeper.open_migration?
       puts "No open migration; cannot rollback."
     end
-    migration_script = migration_recordkeeper.open_migration
-    script_hash = JSON.parse(migration_script)
-    operation_handler = operation_handler_for_script(script_hash)
-    operation_handler.rollback
-    migration_recordkeeper.remove_current_migration
+    migration_script = @migration_recordkeeper.open_migration
+    script_object = JSON.parse(migration_script)
+    @database_manipulator.cleanup
+    script_object.reverse.each do |operation|
+      operation_handler = operation_handler_for_script(operation)
+      operation_handler.rollback_step
+    end
+    @migration_recordkeeper.remove_current_migration
     puts "Rollback complete"
   end
 end
-
-

@@ -2,15 +2,17 @@ require 'json'
 require_relative '../components/MigrationExecutor'
 require_relative '../components/DatabaseConnection'
 
-script = {
-  operation: "rename_column",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: "phone",
-    new_name: "phone_number"
-  },
-}
+script = [
+  {
+    operation: "rename_column",
+    info: {
+      schema: "public",
+      table: "employees",
+      column: "phone",
+      new_name: "phone_number"
+    },
+  }
+]
 
 db = DatabaseConnection.new(
   {

@@ -8,11 +8,11 @@ CREATE TABLE public.employees (
     phone text
 );
 
-INSERT INTO public.employees VALUES (1, 'Elaina Parry', 43, NULL);
-INSERT INTO public.employees VALUES (2, 'Barton Stone', 25, NULL);
-INSERT INTO public.employees VALUES (3, 'Bessie Hopkins', 61, NULL);
-INSERT INTO public.employees VALUES (4, 'Daphne Suarez', 35, NULL);
-INSERT INTO public.employees VALUES (5, 'Quintin Curry', 29, NULL);
+INSERT INTO public.employees VALUES (1, 'Elaina Parry', 43, '888-999-0000');
+INSERT INTO public.employees VALUES (2, 'Barton Stone', 25, '1-234-567-8901');
+INSERT INTO public.employees VALUES (3, 'Bessie Hopkins', 61, '828-577-2222');
+INSERT INTO public.employees VALUES (4, 'Daphne Suarez', 35, '31234');
+INSERT INTO public.employees VALUES (5, 'Quintin Curry', 29, '800-232-4574');
 
 /* run this part after expanding to check triggers */
 

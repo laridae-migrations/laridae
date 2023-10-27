@@ -2,15 +2,17 @@ require 'json'
 require_relative '../components/MigrationExecutor'
 require_relative '../components/DatabaseConnection'
 
-script = {
-  operation: "create_index",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: "phone",
-    method: "btree"
-  },
-}
+script = [
+  {
+    operation: "create_index",
+    info: {
+      schema: "public",
+      table: "employees",
+      column: "phone",
+      method: "btree"
+    },
+  }
+]
 
 db = DatabaseConnection.new(
   {
