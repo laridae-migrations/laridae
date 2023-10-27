@@ -1,9 +1,9 @@
-require_relative '../operations/AddNotNullHandler'
-require_relative '../operations/add_column'
-require_relative '../operations/set_unique'
-require_relative '../operations/set_fk'
 require_relative './DatabaseConnection'
 require_relative './MigrationRecordkeeper'
+
+require_relative '../operations/AddColumn'
+require_relative '../operations/AddUniqueConstraint'
+require_relative '../operations/AddForeignKeyConstraint'
 require_relative '../operations/AddNotNull'
 require_relative '../operations/RenameColumn'
 require_relative '../operations/AddCheckConstraint'
@@ -19,9 +19,9 @@ class MigrationExecutor
     'add_check_constraint' => AddCheckConstraint,
     'drop_column' => DropColumn,
     'create_index' => CreateIndex,
-    "add_column" => AddColumnHandler,
-    "set_unique" => SetUniqueHandler,
-    "set_foreign_key" => SetForeignKeyHandler
+    "add_column" => AddColumn,
+    "add_unique_constraint" => AddUniqueConstraint,
+    "add_foreign_key_constraint" => AddForeignKeyConstraint
   }
   def initialize
     @database = nil

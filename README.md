@@ -233,7 +233,7 @@ Note functions are WRONG and DO NOT work
 
 ```ruby
 test_add_column_script = {
-  operation: "set_unique",
+  operation: "add_unique_constraint",
   info: {
     schema: "public",
     table: "employees",
@@ -252,7 +252,7 @@ test_add_column_script = {
 
 ```ruby
 test_add_column_script = {
-  operation: "set_foreign_key",
+  operation: "add_foreign_key_constraint",
   info: {
     schema: "public",
     table: "phones_ex",
