@@ -1,4 +1,4 @@
 #!/usr/bin/env ruby
 
-require_relative './components/MigrationExecutor.rb'
-MigrationExecutor.new.run_command(ARGV)
+require_relative './components/CommandLineInterface.rb'
+CommandLineInterface.new(ARGV).run_command
