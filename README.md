@@ -43,11 +43,23 @@ DatabaseConnection.new(
 )
 ```
 
+## `CommandLineInterface.rb`
+
+This class deals with tasks specific to the command-line interface for laridae: parsing the user's command-line arguments, storing and accessing the database URL in a file, parsing the JSON of the migration script into a Ruby hash, and prompting the user to choose actions during the migration.
+
+Its initializer takes an array containing the command-line arguments to parse.
+
+## `EnvironmentVariablesInterface.rb`
+
+This class presents an alternative interface for laridae in which all the necessary inputs are provided through environment variables. It is intended to be used in setting like an ECS container or Lambda.
+
+Its initializer takes no arguments. The necessary environment variables are `DATABASE_URL`, `ACTION`, which is one of `init`, `expand`, `rollback`, or `contract`, and, if the action is `expand`, `SCRIPT`, containing the migration script JSON.
+
 ## `MigrationExecutor.rb`
 
-This class is responsible for orchestrating the migration at a high-level: it deals with parsing the user's command-line arguments, storing and accessing the database URL, parsing the JSON of the migration script into a Ruby hash, prompting the user to choose actions during the migration, and delegating the individual migration steps to appropriate classes.
+This class is responsible for orchestrating the migration at a high-level by delegating the individual migration steps to appropriate classes.
 
-Its initializer takes no arguments.
+Its initializer takes a database URL or database connection hash as described above for `DatabaseConnection.rb`.
 
 ## `TableManipulator.rb`
 
