@@ -18,6 +18,18 @@ To reverse the changes done in the expand phase, run
 
 Only one migration in a given database may be run at a time.
 
+## TERRAFORM AND AWS CLI
+The `task.tf` is a terraform file to set up a migration task
+To run this terraform file: 
+```
+terraform apply
+```
+
+To run this task that Terraform sets up, from the AWS CLI, run:
+```
+aws ecs run-task --cluster hr-app-cluster --task-definition laridae_migration_task_definition --network-configuration 'awsvpcConfiguration={subnets=[subnet-03a332974d1a8ae54],securityGroups=[sg-0662da6c515199370],assignPublicIp=ENABLED}' --launch-type FARGATE
+```
+
 ## ABOUT THE PROJECT DIRECTORIES
 
 - `components`: contains `DatabaseConnection.rb`, `MigrationExecutor.rb`, `TableManipulator.rb`, and `MigrationRecordkeeper.rb`.
