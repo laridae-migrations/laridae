@@ -25,9 +25,29 @@ To run this terraform file:
 terraform apply
 ```
 
+The `env_override.json` file contains the `environment` variable that is used to specify the laridae command to use. For example:
+```json
+{
+  "containerOverrides": [{
+    "name": "laridae_migration_task",
+    "environment": [
+      {
+        "name": "ACTION",
+        "value": "init"
+      }
+    ]
+  }]
+}
+```
+
 To run this task that Terraform sets up, from the AWS CLI, run:
 ```
-aws ecs run-task --cluster hr-app-cluster --task-definition laridae_migration_task_definition --network-configuration 'awsvpcConfiguration={subnets=[subnet-03a332974d1a8ae54],securityGroups=[sg-0662da6c515199370],assignPublicIp=ENABLED}' --launch-type FARGATE
+aws ecs run-task `
+  --cluster hr-app-cluster `
+  --task-definition laridae_migration_task_definition `
+  --launch-type FARGATE `
+  --network-configuration 'awsvpcConfiguration={subnets=[subnet-03a332974d1a8ae54],securityGroups=[sg-0662da6c515199370],assignPublicIp=ENABLED}' `
+  --overrides file://env_override.json
 ```
 
 ## ABOUT THE PROJECT DIRECTORIES

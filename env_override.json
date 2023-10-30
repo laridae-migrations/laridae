@@ -1,0 +1,9 @@
+{
+  "containerOverrides": [{
+    "name": "laridae_migration_task",
+    "environment": [{
+      "name": "ACTION",
+      "value": "init"
+    }]
+  }]
+}

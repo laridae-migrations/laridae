@@ -33,7 +33,7 @@ class CommandLineInterface
 
   def init(db_url)
     # todo: handle this situation better
-    if File.exists?(DB_URL_FILENAME)
+    if File.exist?(DB_URL_FILENAME)
       puts "Note: previously initialized; overwriting."
     end
     db_url_file = File.open(DB_URL_FILENAME, 'w')
