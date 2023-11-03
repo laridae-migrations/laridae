@@ -1,5 +1,5 @@
 # rubocop:disable allcops
-BATCH_SIZE = 400
+BATCH_SIZE = 1000
 
 class TableManipulator
   def initialize(database, schema, table)
@@ -136,8 +136,6 @@ class TableManipulator
       SQL
 
       @database.query(sql)
-      
-      sleep(2)
     end
   end
 
@@ -185,7 +183,6 @@ class TableManipulator
         SQL
       end
     end
-    p sql
     @database.query(sql)
   end
 
