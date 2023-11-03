@@ -19,9 +19,11 @@ To reverse the changes done in the expand phase, run
 Only one migration in a given database may be run at a time.
 
 ## TERRAFORM AND AWS CLI
-The `task.tf` is a terraform file to set up a migration task
-To run this terraform file: 
+Terraform modules are stored in `/terraform_modules`
+The `initialization.tf` is a terraform file to set up a migration task
+To run this terraform file, make sure to cd into `/terraform_modules` or wherever the `.tf` file(s) reside in: 
 ```
+terraform init
 terraform apply
 ```
 
@@ -61,6 +63,10 @@ aws ecs run-task `
 This class represents the connection to the PostgreSQL database.
 
 To instantiate a `DatabaseConnection` object, pass in a hash containing the database connection parameters. [A list of valid parameters](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS) can be found in the PostgreSQL documentations.
+
+Automatic configurations for each connection at initialization include:
+- Sets `lock_timeout` to 1 second
+- Turns of psql message logging
 
 Example:
 
