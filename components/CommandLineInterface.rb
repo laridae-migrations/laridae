@@ -40,7 +40,7 @@ class CommandLineInterface
   end
 
   def script_validated(db_conn, migration_file_location)
-    validation_result = Validator.run(db_conn, migration_file_location)
+    validation_result = Validator.run_with_location(db_conn, migration_file_location)
     puts "#{validation_result['message']}. Expand did not start" unless validation_result['valid']
     validation_result['valid']
   end
@@ -53,7 +53,7 @@ class CommandLineInterface
       migration_script_json = JSON.parse(File.read(migration_file_location))
       Migration.new(db_conn, record, migration_script_json).expand
     end
-  # rescue StandardError => e
+  rescue StandardError => e
     puts "Error occured: #{e.message}"
     puts 'Expand terminated.'
   ensure
