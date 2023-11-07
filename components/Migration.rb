@@ -6,12 +6,12 @@ require_relative './Validator'
 require_relative './Table'
 
 # require_relative '../operations/AddColumn'
-# require_relative '../operations/AddUniqueConstraint'
+require_relative '../operations/AddUniqueConstraint'
 # require_relative '../operations/AddForeignKeyConstraint'
 require_relative '../operations/AddNotNull'
-# require_relative '../operations/RenameColumn'
-# require_relative '../operations/AddCheckConstraint'
-# require_relative '../operations/DropColumn'
+require_relative '../operations/RenameColumn'
+require_relative '../operations/AddCheckConstraint'
+require_relative '../operations/DropColumn'
 # require_relative '../operations/CreateIndex'
 
 require 'json'
@@ -19,13 +19,13 @@ require 'json'
 # This is the main migration driver
 class Migration
   HANDLERS_BY_OPERATION = {
-    'add_not_null' => AddNotNull
-    # 'rename_column' => RenameColumn,
-    # 'add_check_constraint' => AddCheckConstraint,
-    # 'drop_column' => DropColumn,
+    'add_not_null' => AddNotNull,
+    'rename_column' => RenameColumn,
+    'add_check_constraint' => AddCheckConstraint,
+    'drop_column' => DropColumn,
     # 'create_index' => CreateIndex,
     # 'add_column' => AddColumn,
-    # 'add_unique_constraint' => AddUniqueConstraint,
+    'add_unique_constraint' => AddUniqueConstraint,
     # 'add_foreign_key_constraint' => AddForeignKeyConstraint
   }.freeze
 
@@ -84,23 +84,17 @@ class Migration
     else
       puts 'There is no open migration. Contract not started. '
     end
-    # migration_recordkeeper = MigrationRecordkeeper.new(@db_conn)
-    # puts 'No open migration; cannot contract.' unless migration_recordkeeper.open_migration?
-    # migration_script = migration_recordkeeper.open_migration
-    # script_hash = JSON.parse(migration_script)
-    # operation_handler = operation_handler_for_script(script_hash)
-    # operation_handler.contract
   end
 
   def rollback
-    # migration_recordkeeper = MigrationRecordkeeper.new(@db_conn)
-    # puts 'No open migration; cannot rollback.' unless migration_recordkeeper.open_migration?
-    # migration_script = migration_recordkeeper.open_migration
-    # script_hash = JSON.parse(migration_script)
-    # operation_handler = operation_handler_for_script(script_hash)
-    # operation_handler.rollback
-    # migration_recordkeeper.remove_current_migration
-    # puts 'Rollback complete'
-    # @db_conn.close
+    if @record.ok_to_rollback?
+      @record.mark_rollback_starts
+      last_migration_script = JSON.parse(@record.last_migration['script'])
+      operation_handler_for_script(last_migration_script).rollback
+      @record.mark_rollback_finishes
+      puts 'Rollback completed. '
+    else
+      puts 'There is no open migration. Rollback not started. '
+    end 
   end
 end

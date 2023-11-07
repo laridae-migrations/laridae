@@ -61,6 +61,23 @@ class Table
     @db_conn.query(sql)
   end
 
+  def add_unique_index(index_name, table_name, column_name)
+    sql = <<~SQL
+      CREATE UNIQUE INDEX CONCURRENTLY #{index_name}
+      ON #{table_name} (#{column_name});
+    SQL
+    @db_conn.query_lockable(sql)
+  end
+
+  def add_unique_constraint(table_name, constraint_name, index_name)
+    sql = <<~SQL
+      ALTER TABLE #{table_name}
+      ADD CONSTRAINT #{constraint_name} UNIQUE
+      USING INDEX #{index_name};
+    SQL
+    @db_conn.query(sql)
+  end
+
   def column_type(column_name)
     sql = <<~SQL
       SELECT data_type FROM information_schema.columns
@@ -139,4 +156,6 @@ class Table
     end
   end
   # rubocop:enable Metrics/MethodLength
+
+
 end

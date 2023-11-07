@@ -110,7 +110,8 @@ class Validator
 
   def self.add_unique_constraint
     [check_schema_table_column_exist,
-     check_column_does_not_contain_unsupported_constraints]
+     check_column_does_not_contain_unsupported_constraints,
+     check_column_not_already_unique]
   end
 
   #=======================================================
@@ -235,6 +236,28 @@ class Validator
       { 'valid' => true }
     else
       { 'valid' => false, 'message' => 'Column is referenced in a Foreign Key constraint' }
+    end
+  end
+
+  def self.check_column_not_already_unique
+    schema = @script_hash['info']['schema']
+    table = @script_hash['info']['table']
+    column = @script_hash['info']['column']
+
+    sql = <<~SQL
+      SELECT * FROM information_schema.table_constraints tc 
+      INNER JOIN information_schema.constraint_column_usage cu 
+        ON cu.constraint_name = tc.constraint_name 
+      WHERE tc.constraint_type = 'UNIQUE'
+        AND tc.table_name = $1
+        AND cu.column_name = $2;
+    SQL
+
+    result = @database.query(sql, [table, column])
+    if result.num_tuples.zero?
+      { 'valid' => true }
+    else
+      { 'valid' => false, 'message' => 'Column already has a unique constraint' }
     end
   end
 

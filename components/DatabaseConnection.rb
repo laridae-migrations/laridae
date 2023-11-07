@@ -7,6 +7,8 @@ class DatabaseConnection
   def initialize(db_url)
     @db_conn = PG.connect(db_url)
     initial_config
+  rescue PG::Error => e
+    puts 'Cannot connect to database. '
   end
 
   def initial_config
@@ -24,6 +26,10 @@ class DatabaseConnection
     @db_conn.exec('ROLLBACK;')
     sleep(1) # 1 second
     retry
+  end
+  
+  def query_lockable(sql, *params)
+    @db_conn.exec_params(sql, *params)
   end
 
   def close

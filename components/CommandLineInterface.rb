@@ -33,6 +33,7 @@ class CommandLineInterface
   rescue PG::Error => e
     puts 'Cannot connect to database. Initializaion terminated.'
   rescue StandardError => e
+    puts "Error occured: #{e.message}"
     puts 'Initialization terminated.'
   ensure
     db_conn&.close
@@ -44,6 +45,7 @@ class CommandLineInterface
     validation_result['valid']
   end
 
+  # rubocop:disable Metrics/MethodLength
   def expand(_, migration_file_location)
     db_conn = DatabaseConnection.new(@db_url)
     record = MigrationRecord.new(db_conn)
@@ -51,20 +53,33 @@ class CommandLineInterface
       migration_script_json = JSON.parse(File.read(migration_file_location))
       Migration.new(db_conn, record, migration_script_json).expand
     end
+  # rescue StandardError => e
+    puts "Error occured: #{e.message}"
+    puts 'Expand terminated.'
   ensure
     db_conn&.close
   end
+  # rubocop:enable Metrics/MethodLength
 
   def contract(_)
     db_conn = DatabaseConnection.new(@db_url)
     record = MigrationRecord.new(db_conn)
     Migration.new(db_conn, record, record.last_migration['script']).contract
+  rescue StandardError => e
+    puts "Error occured: #{e.message}"
+    puts 'Contract terminated.'
   ensure
     db_conn&.close
   end
 
   def rollback(_)
-    # database_url = database_url_from_file
-    # MigrationExecutor.new(database_url).rollback
+    db_conn = DatabaseConnection.new(@db_url)
+    record = MigrationRecord.new(db_conn)
+    Migration.new(db_conn, record, record.last_migration['script']).rollback
+  rescue StandardError => e
+    puts "Error occured: #{e.message}"
+    puts 'Rollback terminated.'
+  ensure
+    db_conn&.close
   end
 end
