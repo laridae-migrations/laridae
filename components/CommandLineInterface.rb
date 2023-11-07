@@ -1,81 +1,70 @@
-require_relative './MigrationExecutor'
+# frozen_string_literal: true
+
+require_relative './Migration'
+require_relative './MigrationRecord'
+require_relative './DatabaseConnection'
+require_relative './Validator'
+require 'json'
 
 class CommandLineInterface
-  DB_URL_FILENAME = "#{__dir__}/.laridae_database_url.txt"
-
   def initialize(command_line_arguments)
     @command_line_arguments = command_line_arguments
+    @db_url = @command_line_arguments[1]
   end
-  
+
   def run_command
-    arguments_per_command = {"init" => 2, "expand" => 2, "contract" => 1, "rollback" => 1}
-    command = @command_line_arguments[0]
+    arguments_per_command = { 'init' => 2, 'expand' => 3, 'contract' => 2, 'rollback' => 2 }
+    command = @command_line_arguments.first
+
     if !arguments_per_command.key?(command)
-      puts "Invalid command."
-      return
-    end
-    if arguments_per_command[command] > @command_line_arguments.length
-      puts "Missing required argument."
-      return
-    elsif arguments_per_command[command] < @command_line_arguments.length
-      puts "Extra arguments supplied."
-      return
-    end
-    send(*@command_line_arguments)
-  end
-
-  def database_url_from_file
-    db_url_file = File.open(DB_URL_FILENAME)
-    db_url = db_url_file.read
-    db_url_file.close
-    db_url
-  end
-
-  def init(db_url)
-    # todo: handle this situation better
-    if File.exist?(DB_URL_FILENAME)
-      puts "Note: previously initialized; overwriting."
-    end
-    db_url_file = File.open(DB_URL_FILENAME, 'w')
-    db_url_file.write(db_url)
-    db_url_file.close
-    MigrationExecutor.new(db_url).init
-    puts "Initialization successful."
-  end
-
-  def expand(filename)
-    if !filename.end_with?(".json")
-      puts "Migration script #{filename} must be JSON."
-      return
-    end
-    begin
-      migration_script_file = File.open(filename)
-    rescue Errno::ENOENT
-      puts "Migration script \"#{filename}\" not found."
-      return
-    end
-    database_url = database_url_from_file
-    migration_script = migration_script_file.read
-    script_hash = JSON.parse(migration_script)
-    migration_executor = MigrationExecutor.new(database_url)
-    puts "Should clean up be done on the database (Y/N)"
-    choice = STDIN.gets.chomp.upcase
-    if choice == 'Y'
-      migration_executor.cleanup(script_hash)
-    end
-    new_schema_search_path = migration_executor.expand(script_hash)
-    if new_schema_search_path
-      puts "Expand complete: new schema available at #{new_schema_search_path}"
+      puts 'Invalid command.'
+    elsif arguments_per_command[command] > @command_line_arguments.length
+      puts 'Missing required argument.'
+    else
+      arguments_to_take = arguments_per_command[command] - 1
+      send(*@command_line_arguments[0..arguments_to_take])
     end
   end
 
-  def contract
-    database_url = database_url_from_file
-    MigrationExecutor.new(database_url).contract
+  def init(_)
+    db_conn = DatabaseConnection.new(@db_url)
+    MigrationRecord.new(db_conn).initialize_laridae
+    puts 'Initialization successful.'
+  rescue PG::Error => e
+    puts 'Cannot connect to database. Initializaion terminated.'
+  rescue StandardError => e
+    puts 'Initialization terminated.'
+  ensure
+    db_conn&.close
   end
 
-  def rollback
-    database_url = database_url_from_file
-    MigrationExecutor.new(database_url).rollback
+  def script_validated(db_conn, migration_file_location)
+    validation_result = Validator.run(db_conn, migration_file_location)
+    puts "#{validation_result['message']}. Expand did not start" unless validation_result['valid']
+    validation_result['valid']
+  end
+
+  def expand(_, migration_file_location)
+    db_conn = DatabaseConnection.new(@db_url)
+    record = MigrationRecord.new(db_conn)
+    if script_validated(db_conn, migration_file_location)
+      migration_script_json = JSON.parse(File.read(migration_file_location))
+      Migration.new(db_conn, record, migration_script_json).expand
+    end
+  ensure
+    db_conn&.close
+  end
+
+  def contract(_)
+    db_conn = DatabaseConnection.new(@db_url)
+    record = MigrationRecord.new(db_conn)
+    Migration.new(db_conn, record, record.last_migration['script']).contract
+  ensure
+    db_conn&.close
+  end
+
+  def rollback(_)
+    # database_url = database_url_from_file
+    # MigrationExecutor.new(database_url).rollback
   end
 end

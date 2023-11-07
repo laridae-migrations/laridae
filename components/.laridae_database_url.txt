@@ -1,1 +1,1 @@
-postgresql://postgres:postgres@localhost:5432/human_resources
+postgresql://postgres:postgrest@localhost:5432
