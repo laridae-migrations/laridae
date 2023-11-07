@@ -30,9 +30,19 @@ class AddNotNull
   end
 
   def contract
+    constraints_to_be_renamed = @table_manipulator.get_constraint_pairs(@column, @new_column)
     @table_manipulator.cleanup
     @table_manipulator.drop_column(@column)
     @table_manipulator.rename_column(@new_column, @column)
+
+    constraints_to_be_renamed = @table_manipulator.get_constraint_pairs(@column, @new_column)
+    p constraints_to_be_renamed
+    if !constraints_to_be_renamed.empty?
+      constraints_to_be_renamed.each do |pair|
+        @table_manipulator.rename_constraint(pair[0], pair[1])
+      end
+    end
+
     new_constraint_name = "constraint_#{@column}_not_null"
     @table_manipulator.rename_constraint(@constraint_name, new_constraint_name)
   end

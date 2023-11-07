@@ -203,19 +203,62 @@ class TableManipulator
     @database.query(sql)
   end
 
-  def has_constraints?(column)
+  def get_existing_constraints(column)
     sql = <<~SQL
       SELECT constraint_name FROM information_schema.constraint_column_usage WHERE table_name=$1 AND column_name=$2;
     SQL
     constraints = @database.query(sql, [@table, column])
-    !constraints.num_tuples.zero?
+    constraints.values
+  end
+
+  def has_constraints?(column)
+    constraints = get_existing_constraints(column)
+    !constraints.empty?
+  end
+
+  def get_constraint_pairs(old_column, new_column)
+    previously_existing_constraints = get_existing_constraints(old_column)
+    current_constraints = get_existing_constraints(new_column)
+    constraints_to_be_renamed = []
+
+    if !previously_existing_constraints.empty?
+      previously_existing_constraints.each do |preexisting|
+        prev_constraint = preexisting[0]
+        current_constraints.each do |current|
+          cur_constraint = current[0]
+          if cur_constraint.match?(prev_constraint)
+            constraints_to_be_renamed.push([cur_constraint, prev_constraint])
+          end
+        end
+      end
+    end
+    constraints_to_be_renamed
+  end
+
+  def get_unique_constraint_name(column)
+    sql = <<~SQL
+      SELECT tc.CONSTRAINT_NAME
+      FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc 
+          inner join INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE cu 
+              on cu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME 
+      where 
+          tc.CONSTRAINT_TYPE = 'UNIQUE'
+          and tc.TABLE_NAME = #{@table}
+          and cu.COLUMN_NAME = #{column}
+    SQL
+    @database.query(sql)
+  end
+
+  def has_unique_constraint?(column)
+    unique_constraints = get_unique_constraint_name(column)
+    unique_constraints.num_tuples > 0
   end
 
   def create_new_version_of_column(old_column)
     new_column = "laridae_new_#{old_column}"
     data_type = "#{get_column_type(old_column)}"
-    is_unique = false
-    default_value = nil 
+    is_unique = has_unique_constraint(old_column)
+    default_value = get_column_default_value(old_column)
     add_column(@table, new_column, data_type, default_value, is_unique)
 
     if has_constraints?(old_column)
