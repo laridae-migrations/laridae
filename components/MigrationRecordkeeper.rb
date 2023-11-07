@@ -1,7 +1,7 @@
 class MigrationRecordkeeper
   def initialize(database_connection)
     @database = database_connection
-    @database.turn_off_notices
+    # @database.turn_off_notices
   end
 
   def create_open_migration_table
