@@ -1,3 +1,4 @@
+require_relative '../components/TableManipulator'
 class AddColumn
   def initialize(database, script)
     schema = script["info"]["schema"]
@@ -16,7 +17,7 @@ class AddColumn
   end
 
   def expand
-    p @column
+    # p @column
     data_type = @column["type"]
     default_value = @column["default"]
     # add column

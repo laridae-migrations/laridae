@@ -1,4 +1,5 @@
 # rubocop:disable allcops
+require_relative './ConstraintPropagation'
 BATCH_SIZE = 1000
 
 class TableManipulator
@@ -202,12 +203,24 @@ class TableManipulator
     @database.query(sql)
   end
 
-  def create_new_version_of_column(old_column)
+  def has_constraints?(column)
     sql = <<~SQL
-      ALTER TABLE #{@schema}.#{@table}
-      ADD laridae_new_#{old_column} #{get_column_type(old_column)}
+      SELECT constraint_name FROM information_schema.constraint_column_usage WHERE table_name=$1 AND column_name=$2;
     SQL
-    @database.query(sql)
+    constraints = @database.query(sql, [@table, column])
+    !constraints.num_tuples.zero?
+  end
+
+  def create_new_version_of_column(old_column)
+    new_column = "laridae_new_#{old_column}"
+    data_type = "#{get_column_type(old_column)}"
+    is_unique = false
+    default_value = nil 
+    add_column(@table, new_column, data_type, default_value, is_unique)
+
+    if has_constraints?(old_column)
+      ConstraintPropagation.new(@database).duplicate_constraints(@table, old_column)
+    end
   end
 
   def add_constraint(name, constraint)

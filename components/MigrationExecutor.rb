@@ -27,7 +27,7 @@ class MigrationExecutor
     @db_url = db_url
     # todo: handle invalid db url
     @database = DatabaseConnection.new(@db_url)
-    @database.turn_off_notices
+    # @database.turn_off_notices
   end
 
   def new_schema_search_path

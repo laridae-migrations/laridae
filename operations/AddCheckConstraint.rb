@@ -24,6 +24,7 @@ class AddCheckConstraint
     before_view = {@new_column => nil}
     after_view = {@column => nil, @new_column => @column}
     @table_manipulator.create_new_version_of_column(@column)
+    
     @table_manipulator.add_constraint(@constraint_name, constraint)
     @table_manipulator.create_view("laridae_before", before_view)
     @table_manipulator.create_view("laridae_after", after_view)

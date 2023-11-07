@@ -1,0 +1,12 @@
+{
+  "operation": "add_not_null",
+  "info": {
+    "schema": "public",
+    "table": "employees",
+    "column": "age"
+  },
+  "functions": {
+    "up": "CASE WHEN age IS NULL THEN 18 ELSE age END",
+    "down": "age"
+  }
+}
