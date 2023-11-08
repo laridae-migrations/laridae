@@ -71,6 +71,7 @@ CREATE TABLE public.employees (
     computer_id integer,
     laridae_new_computer_id integer,
     description text,
+    price integer DEFAULT 12,
     laridae_new_age integer,
     CONSTRAINT age_check CHECK ((age >= 18)),
     CONSTRAINT description_length CHECK ((length(description) <= 64))

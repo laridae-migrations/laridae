@@ -68,7 +68,11 @@ class ConstraintPropagation
     sql_commands = get_constraint_commands(table, column)
     sql_commands.each do |command|
       command = rename_constraint_in_command(command, column)
+      if command.match?('UNIQUE')
+        next
+      end
       full_command = "ALTER TABLE #{table} ADD " + command
+      puts full_command
       @database.query(full_command)
     end
   end
