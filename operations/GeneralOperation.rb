@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+require_relative '../components/Table'
+require_relative '../components/Database'
+
 # super class for all operation
 class GeneralOperation
   def initialize(db_conn, script)
@@ -22,5 +26,16 @@ class GeneralOperation
 
   def contract
     @database.teardown_created_schemas
+  end
+
+  def propagate_constraints
+    constraints_to_be_renamed = @table.get_constraint_pairs(@column, @new_column)
+    unless constraints_to_be_renamed.empty?
+      constraints_to_be_renamed.each do |pair|
+        @table.rename_constraint(pair[0], pair[1])
+      end
+    end
+    new_constraint_name = "constraint_#{@column}_not_null"
+    @table.rename_constraint(@constraint_name, new_constraint_name)
   end
 end

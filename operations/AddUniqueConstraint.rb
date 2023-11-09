@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../components/Table'
-require_relative '../components/Database'
 require_relative './GeneralOperation'
 
 class AddUniqueConstraint < GeneralOperation
@@ -36,5 +34,6 @@ class AddUniqueConstraint < GeneralOperation
     @table.rename_column(@new_column, @column)
     new_constraint_name = "constraint_#{@column}_unique"
     @table.rename_constraint(@unique_constraint_name, new_constraint_name)
+    # propagate_constraints
   end
 end

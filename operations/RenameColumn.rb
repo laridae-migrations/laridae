@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../components/Table'
-require_relative '../components/Database'
 require_relative './GeneralOperation'
 
 class RenameColumn < GeneralOperation

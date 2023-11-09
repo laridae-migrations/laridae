@@ -74,4 +74,27 @@ class Database
     SQL
     @db_conn.query(sql)
   end
+
+  def drop_index(index_name)
+    sql = <<~SQL
+      DROP INDEX CONCURRENTLY IF EXISTS #{index_name}
+    SQL
+    @db_conn.query_lockable(sql)
+  end
+
+  def create_index(table, index_name, method, column)
+    sql = <<~SQL
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS #{index_name}
+      ON #{table.schema}.#{table.name}
+      USING #{method} (#{column})
+    SQL
+    @db_conn.query_lockable(sql)
+  end
+
+  def rename_index(old_name, new_name)
+    sql = <<~SQL
+      ALTER INDEX #{old_name} RENAME TO #{new_name}
+    SQL
+    @db_conn.query(sql)
+  end
 end

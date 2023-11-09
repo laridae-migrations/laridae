@@ -6,24 +6,34 @@ require_relative './DatabaseConnection'
 require_relative './Validator'
 require 'json'
 
+# rubocop:disable Metrics/MethodLength
 class CommandLineInterface
+  ARGUMENTS_PER_COMMAND = {
+    'init' => 2,
+    'expand' => 3,
+    'contract' => 2,
+    'rollback' => 2,
+    'restore' => 2
+  }.freeze
+
   def initialize(command_line_arguments)
     @command_line_arguments = command_line_arguments
     @db_url = @command_line_arguments[1]
   end
 
   def run_command
-    arguments_per_command = { 'init' => 2, 'expand' => 3, 'contract' => 2, 'rollback' => 2 }
-    command = @command_line_arguments.first
-
-    if !arguments_per_command.key?(command)
+    command = @command_line_arguments.first.downcase
+    if !ARGUMENTS_PER_COMMAND.key?(command)
       puts 'Invalid command.'
-    elsif arguments_per_command[command] > @command_line_arguments.length
+    elsif ARGUMENTS_PER_COMMAND[command] > @command_line_arguments.length
       puts 'Missing required argument.'
     else
-      arguments_to_take = arguments_per_command[command] - 1
+      arguments_to_take = ARGUMENTS_PER_COMMAND[command] - 1
       send(*@command_line_arguments[0..arguments_to_take])
     end
+  rescue StandardError => e
+    puts "Error occured: #{e.message}"
+    puts 'Command cannot be executed.'
   end
 
   def init(_)
@@ -39,31 +49,25 @@ class CommandLineInterface
     db_conn&.close
   end
 
-  def script_validated(db_conn, migration_file_location)
-    validation_result = Validator.run_with_location(db_conn, migration_file_location)
-    puts "#{validation_result['message']}. Expand did not start" unless validation_result['valid']
-    validation_result['valid']
-  end
-
-  # rubocop:disable Metrics/MethodLength
   def expand(_, migration_file_location)
     db_conn = DatabaseConnection.new(@db_url)
     record = MigrationRecord.new(db_conn)
-    if script_validated(db_conn, migration_file_location)
-      migration_script_json = JSON.parse(File.read(migration_file_location))
-      Migration.new(db_conn, record, migration_script_json).expand
-    end
+    validate_script(db_conn, migration_file_location)
+    migration_script_json = JSON.parse(File.read(migration_file_location))
+    Migration.new(db_conn, record, migration_script_json).expand
+    puts "New schema can be accessed using the search_path: #{new_schema_search_path(migration_script_json['name'])}"
   rescue StandardError => e
     puts "Error occured: #{e.message}"
     puts 'Expand terminated.'
   ensure
     db_conn&.close
   end
-  # rubocop:enable Metrics/MethodLength
 
   def contract(_)
     db_conn = DatabaseConnection.new(@db_url)
     record = MigrationRecord.new(db_conn)
+    raise 'There is no active migration to contract' unless record.last_migration_expanded?
+
     Migration.new(db_conn, record, record.last_migration['script']).contract
   rescue StandardError => e
     puts "Error occured: #{e.message}"
@@ -82,4 +86,33 @@ class CommandLineInterface
   ensure
     db_conn&.close
   end
+
+  def restore(_)
+    db_conn = DatabaseConnection.new(@db_url)
+    record = MigrationRecord.new(db_conn)
+    raise 'There is no migration eligible to restore' unless record.last_migration_aborted?
+
+    Migration.new(db_conn, record, record.last_migration['script']).restore
+    # rescue StandardError => e
+    puts "Error occured: #{e.message}"
+    puts 'Restore terminated.'
+  ensure
+    db_conn&.close
+  end
+
+  def validate_script(db_conn, migration_file_location)
+    validation_result = Validator.run_with_location(db_conn, migration_file_location)
+    raise "#{validation_result['message']}." unless validation_result['valid']
+
+    validation_result['valid']
+  end
+
+  def new_schema_search_path(migration_name)
+    if @db_url.include?('?')
+      "#{@db_url}&currentSchema=#{migration_name},public"
+    else
+      "#{@db_url}?currentSchema=#{migration_name},public"
+    end
+  end
 end
+# rubocop:enable Metrics/MethodLength

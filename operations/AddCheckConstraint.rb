@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../components/Table'
-require_relative '../components/Database'
 require_relative './GeneralOperation'
 
 class AddCheckConstraint < GeneralOperation
@@ -42,5 +40,6 @@ class AddCheckConstraint < GeneralOperation
     @table.rename_column(@new_column, @column)
     new_constraint_name = "constraint_#{@column}_check"
     @table.rename_constraint(@constraint_name, new_constraint_name)
+    # propagate_constraints
   end
 end

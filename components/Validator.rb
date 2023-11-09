@@ -11,7 +11,7 @@ require 'JSON'
 # migration script is valid or not
 # this class does not manage its own db connection
 class Validator
-  def self.run(db_connection, migration_file_location)
+  def self.run_with_location(db_connection, migration_file_location)
     @database = db_connection
 
     checks = [check_file_location_extension(migration_file_location)]
@@ -24,6 +24,21 @@ class Validator
       checks += [check_operation_supported(operation_name), check_migration_name_exists(migration_name)]
       checks += send(operation_name) if respond_to?(operation_name)
     end
+
+    checks.each do |check_result|
+      return check_result unless check_result['valid']
+    end
+    { 'valid' => true }
+  end
+
+  def self.run_with_script(db_connection, migration_script)
+    @database = db_connection
+    @script_hash = JSON.parse(migration_script)
+    operation_name = @script_hash['operation']
+    migration_name = @script_hash['name']
+
+    checks = [check_operation_supported(operation_name), check_migration_name_exists(migration_name)]
+    checks += send(operation_name) if respond_to?(operation_name)
 
     checks.each do |check_result|
       return check_result unless check_result['valid']
@@ -104,7 +119,13 @@ class Validator
   end
 
   def self.add_foreign_key_constraint
-    [check_schema_table_column_exist,
+    schema = @script_hash['info']['schema']
+    table = @script_hash['info']['table']
+    column = @script_hash['info']['column']['name']
+
+    [check_schema_exists(schema),
+     check_table_exists(schema, table),
+     check_column_exists(schema, table, column),
      check_column_does_not_contain_unsupported_constraints]
   end
 
@@ -164,6 +185,8 @@ class Validator
   end
 
   def self.check_column_exists(schema, table, column)
+    return { 'valid' => true } unless column.instance_of? String
+
     sql = <<~SQL
       SELECT column_name FROM information_schema.columns
         WHERE table_schema = '#{schema}'
@@ -245,9 +268,9 @@ class Validator
     column = @script_hash['info']['column']
 
     sql = <<~SQL
-      SELECT * FROM information_schema.table_constraints tc 
-      INNER JOIN information_schema.constraint_column_usage cu 
-        ON cu.constraint_name = tc.constraint_name 
+      SELECT * FROM information_schema.table_constraints tc#{' '}
+      INNER JOIN information_schema.constraint_column_usage cu#{' '}
+        ON cu.constraint_name = tc.constraint_name#{' '}
       WHERE tc.constraint_type = 'UNIQUE'
         AND tc.table_name = $1
         AND cu.column_name = $2;

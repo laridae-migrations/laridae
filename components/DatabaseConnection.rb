@@ -27,7 +27,7 @@ class DatabaseConnection
     sleep(1) # 1 second
     retry
   end
-  
+
   def query_lockable(sql, *params)
     @db_conn.exec_params(sql, *params)
   end

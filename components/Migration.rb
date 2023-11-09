@@ -5,14 +5,14 @@ require_relative './MigrationRecord'
 require_relative './Validator'
 require_relative './Table'
 
-# require_relative '../operations/AddColumn'
+require_relative '../operations/AddColumn'
 require_relative '../operations/AddUniqueConstraint'
-# require_relative '../operations/AddForeignKeyConstraint'
+require_relative '../operations/AddForeignKeyConstraint'
 require_relative '../operations/AddNotNull'
 require_relative '../operations/RenameColumn'
 require_relative '../operations/AddCheckConstraint'
 require_relative '../operations/DropColumn'
-# require_relative '../operations/CreateIndex'
+require_relative '../operations/CreateIndex'
 
 require 'json'
 
@@ -23,10 +23,10 @@ class Migration
     'rename_column' => RenameColumn,
     'add_check_constraint' => AddCheckConstraint,
     'drop_column' => DropColumn,
-    # 'create_index' => CreateIndex,
-    # 'add_column' => AddColumn,
+    'create_index' => CreateIndex,
+    'add_column' => AddColumn,
     'add_unique_constraint' => AddUniqueConstraint,
-    # 'add_foreign_key_constraint' => AddForeignKeyConstraint
+    'add_foreign_key_constraint' => AddForeignKeyConstraint
   }.freeze
 
   def initialize(db_conn, migration_record, script_hash = {})
@@ -34,14 +34,6 @@ class Migration
     @record = migration_record
     @script = script_hash
   end
-
-  # def new_schema_search_path
-  #   if @db_url.include?('?')
-  #     "#{@db_url}&currentSchema=laridae_after,public"
-  #   else
-  #     "#{@db_url}?currentSchema=laridae_after,public"
-  #   end
-  # end
 
   def operation_handler_for_script(script_hash)
     operation_name = script_hash['operation']
@@ -69,9 +61,8 @@ class Migration
       @record.mark_expand_finishes(@script)
       puts 'Expand completed. '
     else
-      puts 'Duplicated Migration. Expand not started. '
+      raise 'Either there is another active migration running, or this was a duplicated Migration. '
     end
-    # new_schema_search_path
   end
 
   def contract
@@ -82,7 +73,7 @@ class Migration
       @record.mark_contract_finishes
       puts 'Contract completed. '
     else
-      puts 'There is no open migration. Contract not started. '
+      raise 'There is no open migration. '
     end
   end
 
@@ -94,7 +85,18 @@ class Migration
       @record.mark_rollback_finishes
       puts 'Rollback completed. '
     else
-      puts 'There is no open migration. Rollback not started. '
-    end 
+      raise 'There is no open migration. '
+    end
+  end
+
+  def restore
+    raise 'There is no migration to restore' if @record.last_migration.nil?
+
+    if @record.ok_to_restore?
+      cleanup
+      puts 'Cleaned up last aborted migration'
+    else
+      raise 'Restore only runs for aborted migrations. If previous migration is in Expanded state, use Rollback instead'
+    end
   end
 end

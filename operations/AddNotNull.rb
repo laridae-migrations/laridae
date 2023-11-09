@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../components/Table'
-require_relative '../components/Database'
 require_relative './GeneralOperation'
 
 class AddNotNull < GeneralOperation
@@ -37,7 +35,6 @@ class AddNotNull < GeneralOperation
     super
     @table.drop_column(@column)
     @table.rename_column(@new_column, @column)
-    new_constraint_name = "constraint_#{@column}_not_null"
-    @table.rename_constraint(@constraint_name, new_constraint_name)
+    propagate_constraints
   end
 end

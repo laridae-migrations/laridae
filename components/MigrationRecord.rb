@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # rubocop:disable Metrics/ClassLength
 
 require 'json'
@@ -18,7 +19,8 @@ class MigrationRecord
     create_migrations_table
   end
 
-  def create_migrations_table # only creates if not already exists
+  # only creates if not already exists
+  def create_migrations_table
     sql = <<~SQL
       CREATE TABLE IF NOT EXISTS laridae.migrations (
         id serial PRIMARY KEY,
@@ -31,7 +33,8 @@ class MigrationRecord
     @db_conn.query(sql)
   end
 
-  def create_laridae_schema # only creates if not already exists
+  # only creates if not already exists
+  def create_laridae_schema
     if laridae_exists?
       puts 'Laridae has been previously initialized in this database.'
     else
@@ -53,7 +56,7 @@ class MigrationRecord
   #=================================
   # METHODS TO CHECK IF ACTION IS ALLOWED ON CURRENT DATABASE
   def ok_to_expand?(script)
-    !duplicated_migration?(script) || last_migration_aborted?
+    (!duplicated_migration?(script) && !last_migration_expanded?) || last_migration_aborted?
   end
 
   def ok_to_contract?
@@ -63,7 +66,11 @@ class MigrationRecord
   def ok_to_rollback?
     last_migration_expanded?
   end
-  
+
+  def ok_to_restore?
+    last_migration_aborted?
+  end
+
   def duplicated_migration?(script)
     last_migration && script['name'] == last_migration['name']
   end
@@ -152,6 +159,4 @@ class MigrationRecord
     result = @db_conn.query(sql)
     result.ntuples.zero? ? nil : result.first
   end
-
-
 end
