@@ -168,8 +168,7 @@ class TableManipulator
         SQL
       else
         sql = <<~SQL
-          ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type} UNIQUE;
-          UPDATE #{@schema}.#{@table} SET #{new_column} = '#{default_value}';
+          ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value} UNIQUE;
         SQL
       end
     else
@@ -179,8 +178,7 @@ class TableManipulator
         SQL
       else
         sql = <<~SQL
-          ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type};
-          UPDATE #{@schema}.#{@table} SET #{new_column} = '#{default_value}';
+          ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value};
         SQL
       end
     end
@@ -243,10 +241,10 @@ class TableManipulator
               on cu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME 
       where 
           tc.CONSTRAINT_TYPE = 'UNIQUE'
-          and tc.TABLE_NAME = #{@table}
-          and cu.COLUMN_NAME = #{column}
+          and tc.TABLE_NAME = $1
+          and cu.COLUMN_NAME = $2
     SQL
-    @database.query(sql)
+    @database.query(sql, [@table, column])
   end
 
   def has_unique_constraint?(column)
@@ -257,7 +255,7 @@ class TableManipulator
   def create_new_version_of_column(old_column)
     new_column = "laridae_new_#{old_column}"
     data_type = "#{get_column_type(old_column)}"
-    is_unique = has_unique_constraint(old_column)
+    is_unique = has_unique_constraint?(old_column)
     default_value = get_column_default_value(old_column)
     add_column(@table, new_column, data_type, default_value, is_unique)
 
