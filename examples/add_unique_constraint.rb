@@ -4,13 +4,16 @@ require_relative '../components/MigrationRecord'
 require_relative '../components/DatabaseConnection'
 
 script = {
-  "name": "11072023_phone_renamed_phone_number_per_mai",
-  "operation": "rename_column",
+  "name": "11072023_phone_add_not_unique",
+  "operation": "add_unique_constraint",
   "info": {
     "schema": "public",
     "table": "employees",
-    "column": "phone",
-    "new_name": "phone_number"
+    "column": "phone"
+  },
+  "functions": {
+    "up": "'phone-' || id",
+    "down": "phone"
   }
 }
 
