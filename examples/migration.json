@@ -1,12 +1,13 @@
 {
-  "operation": "add_not_null",
+  "name": "11072023_phone_add_not_unique_per_mai_asdf",
+  "operation": "add_unique_constraint",
   "info": {
     "schema": "public",
     "table": "employees",
     "column": "phone"
   },
   "functions": {
-    "up": "CASE WHEN phone IS NULL THEN '0000000000' ELSE phone END",
+    "up": "'phone-' || id",
     "down": "phone"
   }
 }
