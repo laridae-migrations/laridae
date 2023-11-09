@@ -22,8 +22,7 @@ class Table
       SQL
     else
       <<~SQL
-        ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} UNIQUE;
-        UPDATE #{@schema}.#{@name} SET #{new_column} = '#{default_value}';
+        ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value} UNIQUE;
       SQL
     end
   end
@@ -35,8 +34,7 @@ class Table
       SQL
     else
       <<~SQL
-        ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type};
-        UPDATE #{@schema}.#{@name} SET #{new_column} = '#{default_value}';
+        ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value};
       SQL
     end
   end
