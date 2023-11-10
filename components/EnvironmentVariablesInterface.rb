@@ -9,11 +9,11 @@ require 'json'
 
 class EnvironmentVariablesInterface < CommandLineInterface
   ARGUMENTS_PER_COMMAND = {
-    'init' => 2,
-    'expand' => 3,
-    'contract' => 2,
-    'rollback' => 2,
-    'restore' => 2
+    'init' => 0,
+    'expand' => 1,
+    'contract' => 0,
+    'rollback' => 0,
+    'restore' => 0
   }.freeze
 
   def initialize
@@ -31,16 +31,15 @@ class EnvironmentVariablesInterface < CommandLineInterface
   def check_env_variables_sufficient
     raise 'Missing required environment variable ACTION.' unless ENV.key?('ACTION')
     raise 'Missing required environment variable DATABASE_URL.' unless ENV.key?('DATABASE_URL')
+    if ENV['ACTION'] == 'expand'
+      raise 'Missing required environment variable SCRIPT.' unless ENV.key?('SCRIPT')
+    end
   end
 
   def run_command
     check_env_variables_sufficient
     action = ENV['ACTION']
-    arguments = [ENV['DATABASE_URL']]
-    arguments.push(ENV['SCRIPT']) if ENV.key?('SCRIPT')
-    check_arguments_vs_command(action, arguments)
-    arguments_to_take = ARGUMENTS_PER_COMMAND[action] - 1
-    send(action, arguments[0..arguments_to_take])
+    send(action, ENV['SCRIPT'])
   rescue StandardError => e
     puts "Error occured: #{e.message}"
     puts 'Command cannot be executed.'
@@ -64,11 +63,12 @@ class EnvironmentVariablesInterface < CommandLineInterface
     raise "#{validation_result['message']}." unless validation_result['valid']
   end
 
-  def expand(_, migration_script)
+  def expand(migration_script)
     db_conn = DatabaseConnection.new(@db_url)
     record = MigrationRecord.new(db_conn)
     validate_script(db_conn, migration_script)
-    Migration.new(db_conn, record, migration_script).expand if script_validated(db_conn, migration_script)
+    migration_script_json = JSON.parse(migration_script)
+    Migration.new(db_conn, record, migration_script_json).expand
   rescue StandardError => e
     puts "Error occured: #{e.message}"
     puts 'Expand terminated.'
@@ -78,36 +78,3 @@ class EnvironmentVariablesInterface < CommandLineInterface
 
   # contract, rollback, restore inherits from CLI
 end
-
-# def contract(_)
-#   db_conn = DatabaseConnection.new(@db_url)
-#   record = MigrationRecord.new(db_conn)
-#   Migration.new(db_conn, record, record.last_migration['script']).contract
-# rescue StandardError => e
-#   puts "Error occured: #{e.message}"
-#   puts 'Contract terminated.'
-# ensure
-#   db_conn&.close
-# end
-
-# def rollback(_)
-#   db_conn = DatabaseConnection.new(@db_url)
-#   record = MigrationRecord.new(db_conn)
-#   Migration.new(db_conn, record, record.last_migration['script']).rollback
-# rescue StandardError => e
-#   puts "Error occured: #{e.message}"
-#   puts 'Rollback terminated.'
-# ensure
-#   db_conn&.close
-# end
-
-# def restore(_)
-#   db_conn = DatabaseConnection.new(@db_url)
-#   record = MigrationRecord.new(db_conn)
-#   Migration.new(db_conn, record, record.last_migration['script']).restore
-# rescue StandardError => e
-#   puts "Error occured: #{e.message}"
-#   puts 'Restore terminated.'
-# ensure
-#   db_conn&.close
-# end
