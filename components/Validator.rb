@@ -3,7 +3,7 @@
 # rubocop:disable Metrics/MethodLength
 # rubocop:disable Metrics/ClassLength
 require_relative './DatabaseConnection'
-require 'JSON'
+require 'json'
 
 # This class is meant to be run as class method
 # such as Validator.run(db, script_location).run
