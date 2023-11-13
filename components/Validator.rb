@@ -3,16 +3,42 @@
 # rubocop:disable Metrics/MethodLength
 # rubocop:disable Metrics/ClassLength
 require_relative './DatabaseConnection'
+require 'json'
 
 # This class is meant to be run as class method
-# such as Validator.new(db, script).run
+# such as Validator.run(db, script_location).run
 # which will return an object validating the
 # migration script is valid or not
+# this class does not manage its own db connection
 class Validator
-  def self.run(db_connection, script_hash)
-    operation_name = script_hash['operation']
+  def self.run_with_location(db_connection, migration_file_location)
+    @database = db_connection
 
-    checks = send(operation_name, db_connection, script_hash) if respond_to?(operation_name)
+    checks = [check_file_location_extension(migration_file_location)]
+
+    if checks.first['valid']
+      @script_hash = JSON.parse(File.read(migration_file_location))
+      operation_name = @script_hash['operation']
+      migration_name = @script_hash['name']
+
+      checks += [check_operation_supported(operation_name), check_migration_name_exists(migration_name)]
+      checks += send(operation_name) if respond_to?(operation_name)
+    end
+
+    checks.each do |check_result|
+      return check_result unless check_result['valid']
+    end
+    { 'valid' => true }
+  end
+
+  def self.run_with_script(db_connection, migration_script)
+    @database = db_connection
+    @script_hash = JSON.parse(migration_script)
+    operation_name = @script_hash['operation']
+    migration_name = @script_hash['name']
+
+    checks = [check_operation_supported(operation_name), check_migration_name_exists(migration_name)]
+    checks += send(operation_name) if respond_to?(operation_name)
 
     checks.each do |check_result|
       return check_result unless check_result['valid']
@@ -21,46 +47,104 @@ class Validator
   end
 
   #=======================================================
+  # VALIDATOR METHODS CORRESPONDING ALL
+  def self.check_file_location_extension(migration_file_location)
+    if File.extname(migration_file_location) != '.json'
+      { 'valid' => false, 'message' => 'Migration script does not have .json extension.' }
+    elsif !File.exist?(migration_file_location)
+      { 'valid' => false, 'message' => "Migration script #{migration_file_location} not found" }
+    else
+      { 'valid' => true }
+    end
+  end
+
+  def self.check_operation_supported(operation_name)
+    if operation_name.nil?
+      { 'valid' => false, 'message' => 'Operation missing from migration script' }
+    elsif !respond_to?(operation_name)
+      { 'valid' => false, 'message' => 'Operation not supported' }
+    else
+      { 'valid' => true }
+    end
+  end
+
+  def self.check_migration_name_exists(migration_name)
+    if migration_name.nil?
+      { 'valid' => false, 'message' => 'Migration name missing from migration script' }
+    else
+      { 'valid' => true }
+    end
+  end
+
+  #=======================================================
   # VALIDATOR METHODS CORRESPONDING TO OPERATIONS
-  def self.add_not_null(db, script_hash)
-    [check_schema_table_column_exist(db, script_hash),
-     check_column_does_not_contain_unsupported_constraints(db, script_hash)]
+  def self.add_not_null
+    [check_schema_table_column_exist,
+     check_column_does_not_contain_unsupported_constraints]
   end
 
-  def self.add_check_constraint(db, script_hash)
-    [check_schema_table_column_exist(db, script_hash),
-     check_column_does_not_contain_unsupported_constraints(db, script_hash)]
+  def self.add_check_constraint
+    [check_schema_table_column_exist,
+     check_column_does_not_contain_unsupported_constraints]
   end
 
-  def self.drop_column(db, script_hash)
-    [check_schema_table_column_exist(db, script_hash),
-     check_column_does_not_contain_unsupported_constraints(db, script_hash)]
+  def self.drop_column
+    [check_schema_table_column_exist,
+     check_column_does_not_contain_unsupported_constraints]
   end
 
-  def self.rename_column(db, script_hash)
-    schema = script_hash['info']['schema']
-    table = script_hash['info']['table']
-    new_name = script_hash['info']['new_name']
+  def self.rename_column
+    schema = @script_hash['info']['schema']
+    table = @script_hash['info']['table']
+    new_name = @script_hash['info']['new_name']
 
-    [check_schema_table_column_exist(db, script_hash),
+    [check_schema_table_column_exist,
      check_name_valid(new_name),
-     check_name_not_taken(db, schema, table, new_name)]
+     check_name_not_taken(schema, table, new_name),
+     check_column_does_not_contain_unsupported_constraints]
   end
 
-  def self.create_index(db, script_hash)
-    [check_schema_table_column_exist(db, script_hash)]
+  def self.create_index
+    [check_schema_table_column_exist]
+  end
+
+  def self.add_column
+    schema = @script_hash['info']['schema']
+    table = @script_hash['info']['table']
+    new_name = @script_hash['info']['column']['name']
+
+    [check_schema_table_column_exist,
+     check_name_valid(new_name),
+     check_name_not_taken(schema, table, new_name)]
+  end
+
+  def self.add_foreign_key_constraint
+    schema = @script_hash['info']['schema']
+    table = @script_hash['info']['table']
+    column = @script_hash['info']['column']['name']
+
+    [check_schema_exists(schema),
+     check_table_exists(schema, table),
+     check_column_exists(schema, table, column),
+     check_column_does_not_contain_unsupported_constraints]
+  end
+
+  def self.add_unique_constraint
+    [check_schema_table_column_exist,
+     check_column_does_not_contain_unsupported_constraints,
+     check_column_not_already_unique]
   end
 
   #=======================================================
   # Check if table, schema, column given in script_hash are valid
-  def self.check_schema_table_column_exist(db, script_hash)
-    schema = script_hash['info']['schema']
-    table = script_hash['info']['table']
-    column = script_hash['info']['column']
+  def self.check_schema_table_column_exist
+    schema = @script_hash['info']['schema']
+    table = @script_hash['info']['table']
+    column = @script_hash['info']['column']
 
-    schema_check = check_schema_exists(db, schema)
-    table_check = check_table_exists(db, schema, table)
-    column_check = check_column_exists(db, schema, table, column)
+    schema_check = check_schema_exists(schema)
+    table_check = check_table_exists(schema, table)
+    column_check = check_column_exists(schema, table, column)
 
     checks = [schema_check, table_check, column_check]
 
@@ -70,13 +154,13 @@ class Validator
     { 'valid' => true }
   end
 
-  def self.check_schema_exists(db, schema)
+  def self.check_schema_exists(schema)
     sql = <<~SQL
       SELECT schema_name FROM information_schema.schemata#{' '}
        WHERE schema_name = '#{schema}';
     SQL
 
-    result = db.query(sql)
+    result = @database.query(sql)
     if result.num_tuples.zero?
       { 'valid' => false, 'message' => 'Schema does not exist' }
     else
@@ -84,14 +168,14 @@ class Validator
     end
   end
 
-  def self.check_table_exists(db, schema, table)
+  def self.check_table_exists(schema, table)
     sql = <<~SQL
       SELECT table_name FROM information_schema.tables
         WHERE table_schema = '#{schema}'
         AND table_name = '#{table}';
     SQL
 
-    result = db.query(sql)
+    result = @database.query(sql)
     if result.num_tuples.zero?
       { 'valid' => false, 'message' => 'Table does not exist' }
 
@@ -100,7 +184,9 @@ class Validator
     end
   end
 
-  def self.check_column_exists(db, schema, table, column)
+  def self.check_column_exists(schema, table, column)
+    return { 'valid' => true } unless column.instance_of? String
+
     sql = <<~SQL
       SELECT column_name FROM information_schema.columns
         WHERE table_schema = '#{schema}'
@@ -108,7 +194,7 @@ class Validator
         AND column_name = '#{column}';
     SQL
 
-    result = db.query(sql)
+    result = @database.query(sql)
     if result.num_tuples.zero?
       { 'valid' => false, 'message' => 'Column does not exist' }
     else
@@ -117,15 +203,15 @@ class Validator
   end
 
   #=======================================================
-  # Check that the specified column is not a PRIMARY KEY 
+  # Check that the specified column is not a PRIMARY KEY
   # or is a reference to a FOREIGN KEY
-  def self.check_column_does_not_contain_unsupported_constraints(db, script_hash)
-    schema = script_hash['info']['schema']
-    table = script_hash['info']['table']
-    column = script_hash['info']['column']
+  def self.check_column_does_not_contain_unsupported_constraints
+    schema = @script_hash['info']['schema']
+    table = @script_hash['info']['table']
+    column = @script_hash['info']['column']
 
-    checks = [check_column_is_not_primary_key(db, schema, table, column),
-              check_column_is_not_fkey_reference(db, schema, table, column)]
+    checks = [check_column_is_not_primary_key(schema, table, column),
+              check_column_is_not_fkey_reference(schema, table, column)]
 
     checks.each do |check_result|
       return check_result unless check_result['valid']
@@ -133,7 +219,7 @@ class Validator
     { 'valid' => true }
   end
 
-  def self.check_column_is_not_primary_key(db, schema, table, column)
+  def self.check_column_is_not_primary_key(schema, table, column)
     sql = <<~SQL
       SELECT *
       FROM information_schema.key_column_usage AS c
@@ -145,7 +231,7 @@ class Validator
         AND t.constraint_type = 'PRIMARY KEY';
     SQL
 
-    result = db.query(sql)
+    result = @database.query(sql)
 
     if result.num_tuples.zero?
       { 'valid' => true }
@@ -154,7 +240,7 @@ class Validator
     end
   end
 
-  def self.check_column_is_not_fkey_reference(db, schema, table, column)
+  def self.check_column_is_not_fkey_reference(schema, table, column)
     sql = <<~SQL
       SELECT *#{' '}
       FROM pg_constraint c#{' '}
@@ -167,12 +253,34 @@ class Validator
                               AND attrelid = c.confrelid);
     SQL
 
-    result = db.query(sql)
+    result = @database.query(sql)
 
     if result.num_tuples.zero?
       { 'valid' => true }
     else
       { 'valid' => false, 'message' => 'Column is referenced in a Foreign Key constraint' }
+    end
+  end
+
+  def self.check_column_not_already_unique
+    schema = @script_hash['info']['schema']
+    table = @script_hash['info']['table']
+    column = @script_hash['info']['column']
+
+    sql = <<~SQL
+      SELECT * FROM information_schema.table_constraints tc#{' '}
+      INNER JOIN information_schema.constraint_column_usage cu#{' '}
+        ON cu.constraint_name = tc.constraint_name#{' '}
+      WHERE tc.constraint_type = 'UNIQUE'
+        AND tc.table_name = $1
+        AND cu.column_name = $2;
+    SQL
+
+    result = @database.query(sql, [table, column])
+    if result.num_tuples.zero?
+      { 'valid' => true }
+    else
+      { 'valid' => false, 'message' => 'Column already has a unique constraint' }
     end
   end
 
@@ -189,7 +297,7 @@ class Validator
   end
 
   # check that there isn't already another column with the same name
-  def self.check_name_not_taken(db, schema, table, new_column_name)
+  def self.check_name_not_taken(schema, table, new_column_name)
     sql = <<~SQL
       SELECT column_name FROM information_schema.columns
         WHERE table_schema = '#{schema}'
@@ -197,7 +305,7 @@ class Validator
         AND column_name = '#{new_column_name}';
     SQL
 
-    result = db.query(sql)
+    result = @database.query(sql)
 
     if result.num_tuples.zero?
       { 'valid' => true }

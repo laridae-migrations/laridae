@@ -1,39 +1,40 @@
-require_relative '../components/TableManipulator'
-class AddNotNull
-  def initialize(database, script)
-    schema = script["info"]["schema"]
-    table = script["info"]["table"]
-    @column = script["info"]["column"]
-    @table_manipulator = TableManipulator.new(database, schema, table)
+# frozen_string_literal: true
+
+require_relative './GeneralOperation'
+
+class AddNotNull < GeneralOperation
+  def initialize(db_conn, script)
+    super
     @new_column = "laridae_new_#{@column}"
     @constraint_name = "laridae_constraint_#{@column}_not_null"
-    @functions = script["functions"]
+    @functions = script['functions']
   end
 
   def rollback
-    @table_manipulator.cleanup
-    @table_manipulator.drop_column(@new_column)
-    @table_manipulator.remove_constraint(@constraint_name)
+    super
+    @table.drop_column(@new_column)
+    @table.remove_constraint(@constraint_name)
   end
 
   def expand
     constraint = "CHECK (#{@new_column} IS NOT NULL) NOT VALID"
-    before_view = {@new_column => nil}
-    after_view = {@column => nil, @new_column => @column}
-    @table_manipulator.create_new_version_of_column(@column)
-    @table_manipulator.add_constraint(@constraint_name, constraint)
-    @table_manipulator.create_view("laridae_before", before_view)
-    @table_manipulator.create_view("laridae_after", after_view)
-    @table_manipulator.create_trigger(@column, @new_column, @functions["up"], @functions["down"])
-    @table_manipulator.backfill(@new_column, @functions["up"])
-    @table_manipulator.validate_constraint(@constraint_name)
+
+    before_view = { @new_column => nil }
+    after_view = { @column => nil, @new_column => @column }
+    super(before_view, after_view)
+
+    @table.create_new_version_of_column(@column)
+    @table.add_constraint(@constraint_name, constraint)
+
+    @database.create_trigger(@table, @column, @new_column, @functions['up'], @functions['down'])
+    @table.backfill(@new_column, @functions['up'])
+    @database.validate_constraint(@table.name, @constraint_name)
   end
 
   def contract
-    @table_manipulator.cleanup
-    @table_manipulator.drop_column(@column)
-    @table_manipulator.rename_column(@new_column, @column)
-    new_constraint_name = "constraint_#{@column}_not_null"
-    @table_manipulator.rename_constraint(@constraint_name, new_constraint_name)
+    super
+    @table.drop_column(@column)
+    @table.rename_column(@new_column, @column)
+    propagate_constraints
   end
 end
