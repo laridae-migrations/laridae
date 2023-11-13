@@ -66,6 +66,7 @@ class EnvironmentVariablesInterface < CommandLineInterface
   def expand(migration_script)
     db_conn = DatabaseConnection.new(@db_url)
     record = MigrationRecord.new(db_conn)
+    record.initialize_laridae
     validate_script(db_conn, migration_script)
     migration_script_json = JSON.parse(migration_script)
     Migration.new(db_conn, record, migration_script_json).expand
