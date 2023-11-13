@@ -24,7 +24,7 @@ class AddColumn < GeneralOperation
     is_unique = @column['unique']
     @table.add_column(@column['name'], data_type, default_value, is_unique)
 
-    if !@column['nullable'].nil? && !(@column['nullable'])
+    if !(@column['nullable'])
       not_null_constraint = "CHECK (#{@column['name']} IS NOT NULL) NOT VALID"
       constraint_name = "#{@column['name']}_not_null"
       @table.add_constraint(constraint_name, not_null_constraint)

@@ -1,5 +1,6 @@
 require 'json'
-require_relative '../components/MigrationExecutor'
+require_relative '../components/Migration'
+require_relative '../components/MigrationRecord'
 require_relative '../components/DatabaseConnection'
 
 script = {
@@ -8,20 +9,22 @@ script = {
     schema: "public",
     table: "employees",
     column: {
-      name: "description",
-      type: "text",
+      name: "important",
+      type: "boolean",
       nullable: false,
-      default: "description for employee",
+      default: false,
     },
   }
 }
 
-db = DatabaseConnection.new(
+db_conn = DatabaseConnection.new(
   {
-    dbname: 'human_resources',
+    dbname: 'script_test',
     host: 'localhost',
     port: 5432,
-    user: 'postgres'
+    user: 'stephanie'
   }
 )
-MigrationExecutor.new(db, script.to_json).run
+record = MigrationRecord.new(db_conn)
+
+Migration.new(db_conn, record, script.to_json).expand

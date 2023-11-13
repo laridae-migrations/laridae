@@ -1,12 +1,14 @@
 {
-  "operation": "add_not_null",
+  "name": "test_add_column10",
+  "operation": "add_column",
   "info": {
     "schema": "public",
     "table": "employees",
-    "column": "age"
-  },
-  "functions": {
-    "up": "CASE WHEN age IS NULL THEN 18 ELSE age END",
-    "down": "age"
+    "column": {
+      "name": "important",
+      "type": "boolean",
+      "nullable": false,
+      "default": false
+    }
   }
 }

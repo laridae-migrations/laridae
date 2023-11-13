@@ -17,36 +17,41 @@ class Table
 
   def add_unique_column_sql(new_column, data_type, default_value)
     if default_value.nil?
-      <<~SQL
+      sql = <<~SQL
         ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} UNIQUE;
       SQL
     else
-      <<~SQL
-        ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} UNIQUE;
-        UPDATE #{@schema}.#{@name} SET #{new_column} = '#{default_value}';
+      sql = <<~SQL
+        ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value} UNIQUE;
       SQL
     end
+    p sql
+    @db_conn.query(sql)
   end
 
   def add_column_sql(new_column, data_type, default_value)
     if default_value.nil?
-      <<~SQL
-        ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type};
-      SQL
+      sql = "ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type};"
     else
-      <<~SQL
-        ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type};
-        UPDATE #{@schema}.#{@name} SET #{new_column} = '#{default_value}';
+      sql = <<~SQL
+        ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value};
       SQL
     end
+    p sql
+    @db_conn.query(sql)
   end
 
   def add_column(new_column, data_type, default_value, is_unique)
-    sql = "ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type}"
-    sql += is_unique ? ' UNIQUE; ' : '; '
-    sql += default_value.nil? ? '' : " UPDATE #{@schema}.#{@name} SET #{new_column} = '#{default_value}';"
+    # sql = "ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type}"
+    # sql += is_unique ? ' UNIQUE; ' : '; '
+    # sql += default_value.nil? ? '' : " UPDATE #{@schema}.#{@name} SET #{new_column} = '#{default_value}';"
 
-    @db_conn.query(sql)
+    if is_unique
+      add_unique_column_sql(new_column, data_type, default_value)
+    else
+      add_column_sql(new_column, data_type, default_value)
+    end
+    # @db_conn.query(sql)
   end
 
   def create_new_version_of_column(old_column)
@@ -58,7 +63,7 @@ class Table
 
     return unless has_constraints?(old_column)
 
-    # ConstraintPropagation.new(@db_conn).duplicate_constraints(@name, old_column)
+    ConstraintPropagation.new(@db_conn).duplicate_constraints(@name, old_column)
   end
 
   def has_constraints?(column)
