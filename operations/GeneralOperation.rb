@@ -28,14 +28,11 @@ class GeneralOperation
     @database.teardown_created_schemas
   end
 
-  def propagate_constraints
-    constraints_to_be_renamed = @table.get_constraint_pairs(@column, @new_column)
+  def rename_propagated_constraints(constraints_to_be_renamed)
     unless constraints_to_be_renamed.empty?
       constraints_to_be_renamed.each do |pair|
         @table.rename_constraint(pair[0], pair[1])
       end
     end
-    new_constraint_name = "constraint_#{@column}_not_null"
-    @table.rename_constraint(@constraint_name, new_constraint_name)
   end
 end

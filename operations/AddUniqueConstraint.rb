@@ -30,10 +30,11 @@ class AddUniqueConstraint < GeneralOperation
 
   def contract
     super
+    constraints_to_be_renamed = @table.get_constraint_pairs(@column, @new_column)
     @table.drop_column(@column)
     @table.rename_column(@new_column, @column)
     new_constraint_name = "constraint_#{@column}_unique"
     @table.rename_constraint(@unique_constraint_name, new_constraint_name)
-    # propagate_constraints
+    rename_propagated_constraints(constraints_to_be_renamed)
   end
 end

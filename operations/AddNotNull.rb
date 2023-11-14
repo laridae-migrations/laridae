@@ -35,6 +35,7 @@ class AddNotNull < GeneralOperation
     super
     @table.drop_column(@column)
     @table.rename_column(@new_column, @column)
-    propagate_constraints
+    new_constraint_name = "constraint_#{@column}_not_null"
+    @table.rename_constraint(@constraint_name, new_constraint_name)
   end
 end
