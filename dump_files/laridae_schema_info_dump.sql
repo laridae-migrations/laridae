@@ -26,6 +26,24 @@ CREATE SCHEMA laridae;
 ALTER SCHEMA laridae OWNER TO stephanie;
 
 --
+-- Name: laridae_before; Type: SCHEMA; Schema: -; Owner: stephanie
+--
+
+CREATE SCHEMA laridae_before;
+
+
+ALTER SCHEMA laridae_before OWNER TO stephanie;
+
+--
+-- Name: laridae_phone_add_unique_per_mai_1; Type: SCHEMA; Schema: -; Owner: stephanie
+--
+
+CREATE SCHEMA laridae_phone_add_unique_per_mai_1;
+
+
+ALTER SCHEMA laridae_phone_add_unique_per_mai_1 OWNER TO stephanie;
+
+--
 -- Name: public_01_original_employees_table; Type: SCHEMA; Schema: -; Owner: stephanie
 --
 
@@ -48,15 +66,83 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: open_migration; Type: TABLE; Schema: laridae; Owner: stephanie
+-- Name: migrations; Type: TABLE; Schema: laridae; Owner: stephanie
 --
 
-CREATE TABLE laridae.open_migration (
-    script jsonb
+CREATE TABLE laridae.migrations (
+    id integer NOT NULL,
+    name text NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    script jsonb NOT NULL,
+    status text,
+    CONSTRAINT migrations_status_check CHECK ((status = ANY (ARRAY['expanded'::text, 'contracted'::text, 'rolled_back'::text, 'aborted'::text])))
 );
 
 
-ALTER TABLE laridae.open_migration OWNER TO stephanie;
+ALTER TABLE laridae.migrations OWNER TO stephanie;
+
+--
+-- Name: migrations_id_seq; Type: SEQUENCE; Schema: laridae; Owner: stephanie
+--
+
+CREATE SEQUENCE laridae.migrations_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE laridae.migrations_id_seq OWNER TO stephanie;
+
+--
+-- Name: migrations_id_seq; Type: SEQUENCE OWNED BY; Schema: laridae; Owner: stephanie
+--
+
+ALTER SEQUENCE laridae.migrations_id_seq OWNED BY laridae.migrations.id;
+
+
+--
+-- Name: phones; Type: TABLE; Schema: public; Owner: stephanie
+--
+
+CREATE TABLE public.phones (
+    id integer NOT NULL,
+    employee_id integer,
+    number text,
+    laridae_new_number text,
+    CONSTRAINT phone_check CHECK ((number ~ '^\d{10}$'::text))
+);
+
+
+ALTER TABLE public.phones OWNER TO stephanie;
+
+--
+-- Name: phones; Type: VIEW; Schema: laridae_before; Owner: stephanie
+--
+
+CREATE VIEW laridae_before.phones AS
+ SELECT phones.id,
+    phones.employee_id,
+    phones.number
+   FROM public.phones;
+
+
+ALTER TABLE laridae_before.phones OWNER TO stephanie;
+
+--
+-- Name: phones; Type: VIEW; Schema: laridae_phone_add_unique_per_mai_1; Owner: stephanie
+--
+
+CREATE VIEW laridae_phone_add_unique_per_mai_1.phones AS
+ SELECT phones.id,
+    phones.employee_id,
+    phones.number
+   FROM public.phones;
+
+
+ALTER TABLE laridae_phone_add_unique_per_mai_1.phones OWNER TO stephanie;
 
 --
 -- Name: employees; Type: TABLE; Schema: public; Owner: stephanie
@@ -72,7 +158,6 @@ CREATE TABLE public.employees (
     laridae_new_computer_id integer,
     description text,
     price integer DEFAULT 12,
-    laridae_new_age integer,
     CONSTRAINT age_check CHECK ((age >= 18)),
     CONSTRAINT description_length CHECK ((length(description) <= 64))
 );
@@ -101,20 +186,6 @@ ALTER TABLE public.employees_id_seq OWNER TO stephanie;
 
 ALTER SEQUENCE public.employees_id_seq OWNED BY public.employees.id;
 
-
---
--- Name: phones; Type: TABLE; Schema: public; Owner: stephanie
---
-
-CREATE TABLE public.phones (
-    id integer NOT NULL,
-    employee_id integer,
-    number text,
-    CONSTRAINT phone_check CHECK ((number ~ '^\d{10}$'::text))
-);
-
-
-ALTER TABLE public.phones OWNER TO stephanie;
 
 --
 -- Name: phones_ex; Type: TABLE; Schema: public; Owner: stephanie
@@ -178,6 +249,13 @@ CREATE TABLE public_01_original_employees_table.latest_schema (
 ALTER TABLE public_01_original_employees_table.latest_schema OWNER TO stephanie;
 
 --
+-- Name: migrations id; Type: DEFAULT; Schema: laridae; Owner: stephanie
+--
+
+ALTER TABLE ONLY laridae.migrations ALTER COLUMN id SET DEFAULT nextval('laridae.migrations_id_seq'::regclass);
+
+
+--
 -- Name: employees id; Type: DEFAULT; Schema: public; Owner: stephanie
 --
 
@@ -189,6 +267,14 @@ ALTER TABLE ONLY public.employees ALTER COLUMN id SET DEFAULT nextval('public.em
 --
 
 ALTER TABLE ONLY public.phones ALTER COLUMN id SET DEFAULT nextval('public.phones_id_seq'::regclass);
+
+
+--
+-- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: laridae; Owner: stephanie
+--
+
+ALTER TABLE ONLY laridae.migrations
+    ADD CONSTRAINT migrations_pkey PRIMARY KEY (id);
 
 
 --

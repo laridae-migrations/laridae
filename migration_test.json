@@ -1,0 +1,13 @@
+{
+  "name": "phone_add_unique_per_mai_1",
+  "operation": "add_unique_constraint",
+  "info": {
+    "schema": "public",
+    "table": "phones",
+    "column": "number"
+  },
+  "functions": {
+    "up": "LPAD(CAST(id AS VARCHAR), 10, '0')",
+    "down": "phone"
+  }
+}

@@ -45,22 +45,11 @@ class ConstraintPropagation
     last_char == ','
   end
 
-  def rename_column(arr, column)
-    arr.map do |n|
-      if n == column
-        "laridae_new_#{column}"
-      else
-        n
-      end
-    end
-  end
-
   def rename_constraint_in_command(command, column)
     command_arr = command.split(' ')
     constraint_name = command_arr[1]
-    name_arr = constraint_name.split('_')
-    renamed_name_arr = rename_column(name_arr, column)
-    command_arr[1] = renamed_name_arr.join('_')
+    renamed_constraint_name = "laridae_new_#{constraint_name}"
+    command_arr[1] = renamed_constraint_name
     command_arr[-1] = remove_trailing_comma(command_arr[-1]) if trailing_comma?(command_arr[-1])
     command_arr.join(' ')
   end
