@@ -42,16 +42,11 @@ class Table
   end
 
   def add_column(new_column, data_type, default_value, is_unique)
-    # sql = "ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type}"
-    # sql += is_unique ? ' UNIQUE; ' : '; '
-    # sql += default_value.nil? ? '' : " UPDATE #{@schema}.#{@name} SET #{new_column} = '#{default_value}';"
-
     if is_unique
       add_unique_column_sql(new_column, data_type, default_value)
     else
       add_column_sql(new_column, data_type, default_value)
     end
-    # @db_conn.query(sql)
   end
 
   def create_new_version_of_column(old_column)

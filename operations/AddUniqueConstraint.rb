@@ -20,9 +20,10 @@ class AddUniqueConstraint < GeneralOperation
   def expand
     before_view = { @new_column => nil }
     after_view = { @column['name'] => nil, @new_column => @column['name'] }
-    super(before_view, after_view)
 
     @table.create_new_version_of_column(@column)
+    super(before_view, after_view)
+
     @table.add_unique_index(@unique_index_name, @table.name, @new_column)
     @table.add_unique_constraint(@table.name, @unique_constraint_name, @unique_index_name)
     @table.backfill(@new_column, @functions['up'])
