@@ -1,2 +1,3 @@
 .terraform/
 .bundle/
+examples/migration.json

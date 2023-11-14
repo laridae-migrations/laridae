@@ -21,6 +21,8 @@ class Table
         ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} UNIQUE;
       SQL
     else
+      <<~SQL
+        ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value} UNIQUE;
       sql = <<~SQL
         ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value} UNIQUE;
       SQL
@@ -33,6 +35,8 @@ class Table
     if default_value.nil?
       sql = "ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type};"
     else
+      <<~SQL
+        ALTER TABLE #{@schema}.#{@table} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value};
       sql = <<~SQL
         ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value};
       SQL
