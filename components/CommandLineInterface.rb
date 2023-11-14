@@ -109,9 +109,9 @@ class CommandLineInterface
 
   def new_schema_search_path(migration_name)
     if @db_url.include?('?')
-      "#{@db_url}&currentSchema=#{migration_name},public"
+      "#{@db_url}&options=-csearch_path%3Dlaridae_#{migration_name},public"
     else
-      "#{@db_url}?currentSchema=#{migration_name},public"
+      "#{@db_url}?options=-csearch_path%3Dlaridae_#{migration_name},public"
     end
   end
 end

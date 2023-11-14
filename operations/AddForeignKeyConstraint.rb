@@ -26,13 +26,14 @@ class AddForeignKeyConstraint < GeneralOperation
 
     before_view = { @new_column => nil }
     after_view = { @column['name'] => nil, @new_column => @column['name'] }
-    super(before_view, after_view)
 
     data_type = @table.column_type(@column['name'])
     default_value = @table.get_column_default_value(@column['name'])
     is_unique = false
 
     @table.add_column(@new_column, data_type, default_value, is_unique)
+    super(before_view, after_view)
+
     @table.add_constraint(@constraint_name, constraint)
     @database.create_trigger(@table, @column['name'], @new_column, @functions['up'], @functions['down'])
     @table.backfill(@new_column, @functions['up'])
