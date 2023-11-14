@@ -19,9 +19,10 @@ class CreateIndex < GeneralOperation
   def expand
     before_view = { @new_column => nil }
     after_view = { @column => nil, @new_column => @column }
-    super(before_view, after_view)
 
     @table.create_new_version_of_column(@column)
+    super(before_view, after_view)
+
     @database.create_index(@table, @index, @method, @new_column)
     @database.create_trigger(@table, @column, @new_column, @column, @column)
     @table.backfill(@new_column, @column)
