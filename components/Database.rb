@@ -18,7 +18,6 @@ class Database
   end
 
   def create_view(new_schema_name, old_schema_name, table_name, columns_in_view)
-    # @db_conn.query("CREATE SCHEMA #{new_schema_name}")
     sql = <<~SQL
       CREATE SCHEMA #{new_schema_name};
       CREATE VIEW #{new_schema_name}.#{table_name} AS#{' '}

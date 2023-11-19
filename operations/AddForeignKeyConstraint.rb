@@ -44,6 +44,6 @@ class AddForeignKeyConstraint < GeneralOperation
     super
     @table.drop_column(@column['name'])
     @table.rename_column(@new_column, @column['name'])
-    # don't need to rename constraint cuz provided by client
+    # don't need to rename constraint since provided by client
   end
 end

@@ -93,7 +93,7 @@ class CommandLineInterface
     raise 'There is no migration eligible to restore' unless record.last_migration_aborted?
 
     Migration.new(db_conn, record, record.last_migration['script']).restore
-    # rescue StandardError => e
+  rescue StandardError => e
     puts "Error occured: #{e.message}"
     puts 'Restore terminated.'
   ensure

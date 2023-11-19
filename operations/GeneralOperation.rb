@@ -2,7 +2,7 @@
 require_relative '../components/Table'
 require_relative '../components/Database'
 
-# super class for all operation
+# superclass for all operations
 class GeneralOperation
   def initialize(db_conn, script)
     @script = script
