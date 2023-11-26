@@ -56,7 +56,7 @@ class Table
 
     return unless has_constraints?(old_column)
 
-    ConstraintPropagation.new(@db_conn).duplicate_constraints(@name, old_column)
+    ConstraintPropagation.new(@db_conn).duplicate_constraints(@schema, @name, old_column)
   end
 
   def has_constraints?(column)

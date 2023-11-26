@@ -19,7 +19,7 @@ require 'json'
 # This is the main migration driver
 class Migration
   HANDLERS_BY_OPERATION = {
-    'add_not_null' => AddNotNull,
+    'add_not_null_constraint' => AddNotNull,
     'rename_column' => RenameColumn,
     'add_check_constraint' => AddCheckConstraint,
     'drop_column' => DropColumn,

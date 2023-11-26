@@ -1,14 +1,13 @@
 {
-  "name": "check_constraint_test",
-  "operation": "add_check_constraint",
+  "name": "not_null_test",
+  "operation": "add_not_null_constraint",
   "info": {
     "schema": "test",
     "table": "employees",
-    "column": "phone",
-    "condition": "phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d'"
+    "column": "phone"
   },
   "functions": {
-    "up": "CASE WHEN (NOT phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d') THEN '000-000-0000' ELSE phone END",
+    "up": "CASE WHEN (phone IS NULL) THEN '000-000-0000' ELSE phone END",
     "down": "phone"
   }
 }
