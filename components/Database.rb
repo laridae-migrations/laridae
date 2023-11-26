@@ -28,6 +28,8 @@ class Database
 
   # rubocop:disable Metrics/MethodLength
   def create_trigger_function(table, old_column, new_column, up, down)
+    new_search_path = "laridae_#{@script['name']}, #{@script['info']['schema']}"
+    puts("New search path is #{new_search_path}")
     fixed_down = down.gsub(old_column, new_column)
     sql = <<~SQL
       CREATE SCHEMA IF NOT EXISTS laridae_temp;
@@ -42,7 +44,7 @@ class Database
           SELECT current_setting
             INTO search_path
             FROM current_setting('search_path');
-          IF search_path = 'laridae_after' THEN
+          IF search_path = '#{new_search_path}' THEN
             NEW.#{old_column} := #{fixed_down};
           ELSE
             NEW.#{new_column} := #{up};
@@ -66,17 +68,9 @@ class Database
     @db_conn.query(sql)
   end
 
-  def validate_constraint(table_name, constraint_name)
+  def drop_index(schema, name)
     sql = <<~SQL
-      ALTER TABLE #{table_name}#{' '}
-      VALIDATE CONSTRAINT #{constraint_name}
-    SQL
-    @db_conn.query(sql)
-  end
-
-  def drop_index(index_name)
-    sql = <<~SQL
-      DROP INDEX CONCURRENTLY IF EXISTS #{index_name}
+      DROP INDEX CONCURRENTLY IF EXISTS #{schema}.#{name}
     SQL
     @db_conn.query_lockable(sql)
   end
@@ -90,9 +84,9 @@ class Database
     @db_conn.query_lockable(sql)
   end
 
-  def rename_index(old_name, new_name)
+  def rename_index(schema, old_name, new_name)
     sql = <<~SQL
-      ALTER INDEX #{old_name} RENAME TO #{new_name}
+      ALTER INDEX #{schema}.#{old_name} RENAME TO #{new_name}
     SQL
     @db_conn.query(sql)
   end

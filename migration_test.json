@@ -1,13 +1,14 @@
 {
-  "name": "phone_add_unique_per_mai_1",
-  "operation": "add_unique_constraint",
+  "name": "check_constraint_test",
+  "operation": "add_check_constraint",
   "info": {
-    "schema": "public",
-    "table": "phones",
-    "column": "number"
+    "schema": "test",
+    "table": "employees",
+    "column": "phone",
+    "condition": "phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d'"
   },
   "functions": {
-    "up": "LPAD(CAST(id AS VARCHAR), 10, '0')",
+    "up": "CASE WHEN (NOT phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d') THEN '000-000-0000' ELSE phone END",
     "down": "phone"
   }
 }

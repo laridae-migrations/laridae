@@ -24,7 +24,7 @@ class AddColumn < GeneralOperation
     is_unique = @column['unique']
     @table.add_column(@column['name'], data_type, default_value, is_unique)
 
-    if !(@column['nullable'])
+    if @column['nullable'] == false
       not_null_constraint = "CHECK (#{@column['name']} IS NOT NULL) NOT VALID"
       constraint_name = "#{@column['name']}_not_null"
       @table.add_constraint(constraint_name, not_null_constraint)
@@ -46,7 +46,7 @@ class AddColumn < GeneralOperation
     @table.create_trigger(@table, @column, @new_column, @functions['up'], @functions['down']) if @functions
 
     @constraints.each do |constraint|
-      @database.validate_constraint(@table.name, constraint)
+      @table.validate_constraint(constraint)
     end
   end
 

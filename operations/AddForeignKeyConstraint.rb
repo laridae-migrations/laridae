@@ -37,7 +37,7 @@ class AddForeignKeyConstraint < GeneralOperation
     @table.add_constraint(@constraint_name, constraint)
     @database.create_trigger(@table, @column['name'], @new_column, @functions['up'], @functions['down'])
     @table.backfill(@new_column, @functions['up'])
-    @database.validate_constraint(@table.name, @constraint_name)
+    @table.validate_constraint(@constraint_name)
   end
 
   def contract

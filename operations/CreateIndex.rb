@@ -12,7 +12,7 @@ class CreateIndex < GeneralOperation
 
   def rollback
     super
-    @database.drop_index(@index)
+    @database.drop_index(@table.schema, @index)
     @table.drop_column(@new_column)
   end
 
@@ -33,6 +33,6 @@ class CreateIndex < GeneralOperation
     @table.drop_column(@column)
     @table.rename_column(@new_column, @column)
     new_index_name = "index_#{@table.name}_#{@column}"
-    @database.rename_index(@index, new_index_name)
+    @database.rename_index(@table.schema, @index, new_index_name)
   end
 end
