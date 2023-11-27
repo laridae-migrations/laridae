@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 10000
 
 require_relative './ConstraintPropagation'
 
@@ -16,26 +16,20 @@ class Table
   end
 
   def add_unique_column_sql(new_column, data_type, default_value)
-    if default_value.nil?
-      sql = <<~SQL
-        ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} UNIQUE;
-      SQL
-    else
-      sql = <<~SQL
-        ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value} UNIQUE;
-      SQL
-    end
+    sql = if default_value.nil?
+            "ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} UNIQUE;"
+          else
+            "ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value} UNIQUE;"
+          end
     @db_conn.query(sql)
   end
 
   def add_column_sql(new_column, data_type, default_value)
-    if default_value.nil?
-      sql = "ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type};"
-    else
-      sql = <<~SQL
-        ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value};
-      SQL
-    end
+    sql = if default_value.nil?
+            "ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type};"
+          else
+            "ALTER TABLE #{@schema}.#{@name} ADD COLUMN #{new_column} #{data_type} DEFAULT #{default_value};"
+          end
     @db_conn.query(sql)
   end
 
@@ -190,6 +184,15 @@ class Table
     @db_conn.query(sql).first['count'].to_i
   end
 
+  def largest_value(column)
+    sql = <<~SQL
+      SELECT #{column} FROM #{@schema}.#{@name}
+      ORDER BY #{column} DESC
+      LIMIT 1;
+    SQL
+    @db_conn.query(sql).first[column].to_i
+  end
+
   def has_unique_constraint?(column)
     unique_constraints = get_unique_constraint_name(column)
     unique_constraints.num_tuples.positive?
@@ -255,20 +258,22 @@ class Table
     constraints_to_be_renamed
   end
 
-  def backfill(new_column, up)
+  def batch_backfill_sql(new_column, up)
     pkey_column = primary_key_column
-
-    (0..total_rows_count).step(BATCH_SIZE) do |offset|
-      sql = <<~SQL
-        WITH rows AS#{' '}
-          (SELECT #{pkey_column} FROM #{@schema}.#{@name} ORDER BY #{pkey_column}#{' '}
-           LIMIT #{BATCH_SIZE} OFFSET #{offset})
-        UPDATE #{@schema}.#{@name} SET #{new_column} = #{up}
-        WHERE EXISTS#{' '}
-          (SELECT * FROM rows WHERE #{@schema}.#{@name}.#{pkey_column} = rows.#{pkey_column});
+    largest_pkey_value = largest_value(pkey_column)
+    (0..largest_pkey_value).step(BATCH_SIZE).map do |offset|
+      <<~SQL
+        UPDATE #{schema}.#{@name} SET #{new_column} = #{up}
+        WHERE #{primary_key_column} BETWEEN #{offset + 1} AND #{offset + BATCH_SIZE};
       SQL
-      @db_conn.query(sql)
     end
   end
-  # rubocop:enable Metrics/MethodLength
+
+  def backfill(new_column, up)
+    batch_statements = batch_backfill_sql(new_column, up)
+    batch_statements.each do |statement|
+      @db_conn.query(statement)
+    end
+  end
+  # rubocop:enable Metrics/MethodLength, Metrics/ClassLength
 end
