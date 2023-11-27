@@ -21,8 +21,10 @@ class AddUniqueConstraint < GeneralOperation
     before_view = { @new_column => nil }
     after_view = { @column['name'] => nil, @new_column => @column['name'] }
 
+    create_before_view(before_view)
+
     @table.create_new_version_of_column(@column)
-    super(before_view, after_view)
+    create_after_view(after_view)
 
     @table.add_unique_index(@unique_index_name, @table.name, @new_column)
     @table.add_unique_constraint(@table.name, @unique_constraint_name, @unique_index_name)

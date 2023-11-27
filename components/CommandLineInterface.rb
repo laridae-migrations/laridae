@@ -20,6 +20,19 @@ class CommandLineInterface
     'restore' => 2
   }.freeze
 
+  def expand_warning(migration_script_json)
+    <<~HEREDOC
+    🛑 Warning: If your existing code cannot support additional columns being
+    added to the table you're trying to modify, before continuing, you need to
+    set your existing application code to use the following database
+    connection string:
+
+    #{old_database_url(migration_script_json)}
+
+    Press enter to continue or CTRL-C (CMD-C) to abort.
+    HEREDOC
+  end
+
   def initialize(command_line_arguments)
     @command_line_arguments = command_line_arguments
     @db_url = @command_line_arguments[1]
@@ -61,6 +74,12 @@ class CommandLineInterface
     record = MigrationRecord.new(db_conn)
     validate_script(db_conn, migration_file_location)
     migration_script_json = JSON.parse(File.read(migration_file_location))
+    puts expand_warning(migration_script_json)
+    begin
+      $stdin.gets
+    rescue Interrupt
+      return
+    end
     Migration.new(db_conn, record, migration_script_json).expand
     puts "New schema can be accessed using the following connection string: " +
          "#{new_database_url(migration_script_json)}"
@@ -117,6 +136,16 @@ class CommandLineInterface
     raise "#{validation_result['message']}." unless validation_result['valid']
 
     validation_result['valid']
+  end
+
+  def old_database_url(migration_script_json)
+    migration_name = migration_script_json["name"]
+    schema = migration_script_json["info"]["schema"]
+    if @db_url.include?('?')
+      "#{@db_url}&options=-csearch_path%3Dlaridae_before,#{schema}"
+    else
+      "#{@db_url}?options=-csearch_path%3Dlaridae_before,#{schema}"
+    end
   end
 
   def new_database_url(migration_script_json)

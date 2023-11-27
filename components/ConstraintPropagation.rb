@@ -28,11 +28,11 @@ class ConstraintPropagation
     # transform statement with constraint info into a string, split string by new line chars, strip away leading spaces
     constraint_commands = constraint_info.join('').split("\n").map(&:lstrip)
 
-    constraint_commands.filter { |command| command.include?(column) }.last
+    constraint_commands.filter { |command| command.include?(constraint_name) }.first
   end
 
   def replace_columns_in_command(command, column)
-    command.gsub(/\b#{column}\b(?! [a-zA-Z])/, "laridae_new_#{column}")
+    command.gsub(/\b#{column}\b/, "laridae_new_#{column}")
   end
 
   def remove_trailing_char(text)
@@ -58,8 +58,7 @@ class ConstraintPropagation
     sql_commands = []
     constraints.each do |constraint|
       command = get_constraint_info_from_dump_file(constraint, column)
-      command = replace_columns_in_command(command, column)
-      sql_commands.push(command)
+      sql_commands.push(replace_columns_in_command(command, column))
     end
     sql_commands
   end
@@ -71,8 +70,7 @@ class ConstraintPropagation
       command = rename_constraint_in_command(command, column)
       next if command.match?('UNIQUE')
 
-      full_command = "ALTER TABLE #{schema}.#{table} ADD " + command
-      puts full_command
+      full_command = "ALTER TABLE #{schema}.#{table} ADD #{command} NOT VALID"
       @database.query(full_command)
     end
   end

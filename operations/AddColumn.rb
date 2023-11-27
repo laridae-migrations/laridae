@@ -19,6 +19,12 @@ class AddColumn < GeneralOperation
 
   # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
   def expand
+
+    before_view = { @column => nil }
+    after_view = { @column => @column }
+
+    create_before_view(before_view)
+
     data_type = @column['type']
     default_value = @column['default']
     is_unique = @column['unique']
@@ -39,9 +45,7 @@ class AddColumn < GeneralOperation
       @constraints.push(constraint_name)
     end
 
-    before_view = { @column => nil }
-    after_view = { @column => @column }
-    super(before_view, after_view)
+    create_after_view(after_view)
 
     @table.create_trigger(@table, @column, @new_column, @functions['up'], @functions['down']) if @functions
 

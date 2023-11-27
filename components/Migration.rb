@@ -54,7 +54,6 @@ class Migration
 
   def expand
     if @record.ok_to_expand?(@script)
-      puts 'Something Something please adjust your application to accomodate an extra column'
       @record.mark_expand_starts(@script)
       cleanup_if_last_aborted
       operation_handler_for_script(@script).expand

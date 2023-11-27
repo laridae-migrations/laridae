@@ -22,8 +22,10 @@ class AddNotNull < GeneralOperation
     before_view = { @new_column => nil }
     after_view = { @column => nil, @new_column => @column }
 
+    create_before_view(before_view)
+
     @table.create_new_version_of_column(@column)
-    super(before_view, after_view)
+    create_after_view(after_view)
 
     @table.add_constraint(@constraint_name, constraint)
 

@@ -29,7 +29,6 @@ class Database
   # rubocop:disable Metrics/MethodLength
   def create_trigger_function(table, old_column, new_column, up, down)
     new_search_path = "laridae_#{@script['name']}, #{@script['info']['schema']}"
-    puts("New search path is #{new_search_path}")
     fixed_down = down.gsub(old_column, new_column)
     sql = <<~SQL
       CREATE SCHEMA IF NOT EXISTS laridae_temp;
