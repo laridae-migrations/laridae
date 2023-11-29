@@ -260,13 +260,14 @@ class Table
 
   def batch_backfill_sql(new_column, up)
     pkey_column = primary_key_column
-    largest_pkey_value = largest_value(pkey_column)
-    (0..largest_pkey_value).step(BATCH_SIZE).map do |offset|
+    (0..total_rows_count).step(BATCH_SIZE).map do |offset|
       <<~SQL
         UPDATE #{schema}.#{@name} SET #{new_column} = #{up}
-        WHERE #{primary_key_column} BETWEEN #{offset + 1} AND #{offset + BATCH_SIZE};
+        WHERE #{pkey_column} BETWEEN 
+          (SELECT #{pkey_column} FROM #{schema}.#{@name} ORDER BY #{pkey_column} ASC OFFSET #{offset} LIMIT 1)
+        AND
+          (SELECT #{pkey_column} from #{schema}.#{@name} ORDER BY #{pkey_column} ASC OFFSET #{offset + BATCH_SIZE - 1} LIMIT 1));
       SQL
-    end
   end
 
   def backfill(new_column, up)
