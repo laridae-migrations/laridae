@@ -7,6 +7,10 @@ require_relative './Validator'
 require_relative './CommandLineInterface'
 require 'json'
 
+def development?
+  ENV["LARIDAE_ENVIRONMENT"] == 'development'
+end
+
 class EnvironmentVariablesInterface < CommandLineInterface
   ARGUMENTS_PER_COMMAND = {
     'init' => 0,
@@ -41,6 +45,7 @@ class EnvironmentVariablesInterface < CommandLineInterface
     action = ENV['ACTION']
     send(action, ENV['SCRIPT'])
   rescue StandardError => e
+    raise e if development?
     puts "Error occured: #{e.message}"
     puts 'Command cannot be executed.'
   end
@@ -50,8 +55,10 @@ class EnvironmentVariablesInterface < CommandLineInterface
     MigrationRecord.new(db_conn).initialize_laridae
     puts 'Initialization successful.'
   rescue PG::Error => e
+    raise e if development?
     puts 'Cannot connect to database. Initializaion terminated.'
   rescue StandardError => e
+    raise e if development?
     puts "Error occured: #{e.message}"
     puts 'Initialization terminated.'
   ensure
@@ -71,6 +78,7 @@ class EnvironmentVariablesInterface < CommandLineInterface
     migration_script_json = JSON.parse(migration_script)
     Migration.new(db_conn, record, migration_script_json).expand
   rescue StandardError => e
+    raise e if development?
     puts "Error occured: #{e.message}"
     puts 'Expand terminated.'
   ensure

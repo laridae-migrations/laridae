@@ -19,7 +19,7 @@ require 'json'
 # This is the main migration driver
 class Migration
   HANDLERS_BY_OPERATION = {
-    'add_not_null' => AddNotNull,
+    'add_not_null_constraint' => AddNotNull,
     'rename_column' => RenameColumn,
     'add_check_constraint' => AddCheckConstraint,
     'drop_column' => DropColumn,
@@ -54,12 +54,11 @@ class Migration
 
   def expand
     if @record.ok_to_expand?(@script)
-      puts 'Something Something please adjust your application to accomodate an extra column'
       @record.mark_expand_starts(@script)
       cleanup_if_last_aborted
       operation_handler_for_script(@script).expand
       @record.mark_expand_finishes(@script)
-      puts 'Expand completed. '
+      puts 'Expand completed.'
     else
       raise 'Either there is another active migration running, or this was a duplicated Migration. '
     end
@@ -93,7 +92,7 @@ class Migration
     raise 'There is no migration to restore' if @record.last_migration.nil?
 
     if @record.ok_to_restore?
-      cleanup
+      cleanup(JSON.parse(@record.last_migration['script']))
       puts 'Cleaned up last aborted migration'
     else
       raise 'Restore only runs for aborted migrations. If previous migration is in Expanded state, use Rollback instead'

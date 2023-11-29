@@ -13,7 +13,8 @@ class RenameColumn < GeneralOperation
   def expand
     before_view = {}
     after_view = { @column => @new_name }
-    super(before_view, after_view)
+    create_before_view(before_view)
+    create_after_view(after_view)
   end
 
   def contract

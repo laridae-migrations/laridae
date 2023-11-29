@@ -1,3 +1,5 @@
 .terraform/
 .bundle/
 migration.json
+migration_test.json
+dump_files/laridae_schema_info_dump.sql

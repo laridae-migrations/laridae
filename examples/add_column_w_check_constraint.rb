@@ -12,7 +12,7 @@ script = {
       type: "integer",
       check: {
         name: "age_check",
-        constraint: "age >= 18"
+        constraint: "age_insert_ex >= 18"
       }
     },
   }

@@ -6,7 +6,12 @@ require_relative './DatabaseConnection'
 require_relative './Validator'
 require 'json'
 
-# rubocop:disable Metrics/MethodLength, Metrics/ClassLength
+def development?
+  ENV["LARIDAE_ENVIRONMENT"] == 'development'
+end
+
+# rubocop:disable Metrics/MethodLength
+
 class CommandLineInterface
   ARGUMENTS_PER_COMMAND = {
     'init' => 2,
@@ -15,6 +20,19 @@ class CommandLineInterface
     'rollback' => 2,
     'restore' => 2
   }.freeze
+
+  def expand_warning(migration_script_json)
+    <<~HEREDOC
+    🛑 Warning: If your existing code cannot support additional columns being
+    added to the table you're trying to modify, before continuing, you need to
+    set your existing application code to use the following database
+    connection string:
+
+    #{old_database_url(migration_script_json)}
+
+    Press enter to continue or CTRL-C (CMD-C) to abort.
+    HEREDOC
+  end
 
   def initialize(command_line_arguments)
     @command_line_arguments = command_line_arguments
@@ -32,6 +50,7 @@ class CommandLineInterface
       send(*@command_line_arguments[0..arguments_to_take])
     end
   rescue StandardError => e
+    raise e if development?
     puts "Error occured: #{e.message}"
     puts 'Command cannot be executed.'
   end
@@ -44,8 +63,10 @@ class CommandLineInterface
     MigrationRecord.new(db_conn).initialize_laridae
     puts 'Initialization successful.'
   rescue PG::Error => e
+    raise e if development?
     puts 'Cannot connect to database. Initializaion terminated.'
   rescue StandardError => e
+    raise e if development?
     puts "Error occured: #{e.message}"
     puts 'Initialization terminated.'
   ensure
@@ -57,9 +78,17 @@ class CommandLineInterface
     record = MigrationRecord.new(db_conn)
     validate_script(db_conn, migration_file_location)
     migration_script_json = JSON.parse(File.read(migration_file_location))
+    puts expand_warning(migration_script_json)
+    begin
+      $stdin.gets
+    rescue Interrupt
+      return
+    end
     Migration.new(db_conn, record, migration_script_json).expand
-    puts "New schema can be accessed using the search_path: #{new_schema_search_path(migration_script_json['name'])}"
+    puts "New schema can be accessed using the following connection string: " +
+         "#{new_database_url(migration_script_json)}"
   rescue StandardError => e
+    raise e if development?
     db_conn.query_lockable('ROLLBACK;')
     puts "Error occured: #{e.message}"
     puts 'Expand terminated.'
@@ -74,7 +103,7 @@ class CommandLineInterface
 
     Migration.new(db_conn, record, record.last_migration['script']).contract
   rescue StandardError => e
-    db_conn.query_lockable('ROLLBACK;')
+    raise e if development?
     puts "Error occured: #{e.message}"
     puts 'Contract terminated.'
   ensure
@@ -88,6 +117,7 @@ class CommandLineInterface
 
     Migration.new(db_conn, record, record.last_migration['script']).rollback
   rescue StandardError => e
+    raise e if development?
     puts "Error occured: #{e.message}"
     puts 'Rollback terminated.'
   ensure
@@ -101,6 +131,7 @@ class CommandLineInterface
 
     Migration.new(db_conn, record, record.last_migration['script']).restore
   rescue StandardError => e
+    raise e if development?
     puts "Error occured: #{e.message}"
     puts 'Restore terminated.'
   ensure
@@ -115,11 +146,23 @@ class CommandLineInterface
     validation_result['valid']
   end
 
-  def new_schema_search_path(migration_name)
+  def old_database_url(migration_script_json)
+    migration_name = migration_script_json["name"]
+    schema = migration_script_json["info"]["schema"]
     if @db_url.include?('?')
-      "#{@db_url}&options=-csearch_path%3Dlaridae_#{migration_name},public"
+      "#{@db_url}&options=-csearch_path%3Dlaridae_before,#{schema}"
     else
-      "#{@db_url}?options=-csearch_path%3Dlaridae_#{migration_name},public"
+      "#{@db_url}?options=-csearch_path%3Dlaridae_before,#{schema}"
+    end
+  end
+
+  def new_database_url(migration_script_json)
+    migration_name = migration_script_json["name"]
+    schema = migration_script_json["info"]["schema"]
+    if @db_url.include?('?')
+      "#{@db_url}&options=-csearch_path%3Dlaridae_#{migration_name},#{schema}"
+    else
+      "#{@db_url}?options=-csearch_path%3Dlaridae_#{migration_name},#{schema}"
     end
   end
 

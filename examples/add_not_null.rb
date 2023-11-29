@@ -5,7 +5,7 @@ require_relative '../components/DatabaseConnection'
 
 script = {
   "name": "11072023_phone_add_not_null_per_mai",
-  "operation": "add_not_null",
+  "operation": "add_not_null_constraint",
   "info": {
     "schema": "public",
     "table": "employees",

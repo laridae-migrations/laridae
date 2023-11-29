@@ -12,16 +12,18 @@ class CreateIndex < GeneralOperation
 
   def rollback
     super
-    @database.drop_index(@index)
+    @database.drop_index(@table.schema, @index)
     @table.drop_column(@new_column)
   end
 
   def expand
     before_view = { @new_column => nil }
     after_view = { @column => nil, @new_column => @column }
+    
+    create_before_view(before_view)
 
     @table.create_new_version_of_column(@column)
-    super(before_view, after_view)
+    create_after_view(after_view)
 
     @database.create_index(@table, @index, @method, @new_column)
     @database.create_trigger(@table, @column, @new_column, @column, @column)
@@ -33,6 +35,6 @@ class CreateIndex < GeneralOperation
     @table.drop_column(@column)
     @table.rename_column(@new_column, @column)
     new_index_name = "index_#{@table.name}_#{@column}"
-    @database.rename_index(@index, new_index_name)
+    @database.rename_index(@table.schema, @index, new_index_name)
   end
 end

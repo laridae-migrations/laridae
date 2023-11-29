@@ -72,7 +72,7 @@ class MigrationRecord
   end
 
   def duplicated_migration?(script)
-    last_migration && script['name'] == last_migration['name']
+    last_migration && script['name'] == last_migration['name'] && !last_migration['status'] == 'rolled_back'
   end
 
   def last_migration_expanded?

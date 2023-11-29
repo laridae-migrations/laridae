@@ -4,7 +4,10 @@ require 'pg'
 
 # Connection to a PG database
 class DatabaseConnection
+
+  attr_reader :url
   def initialize(db_url)
+    @url = db_url
     @db_conn = PG.connect(db_url)
     initial_config
   rescue PG::Error => e

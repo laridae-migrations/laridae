@@ -50,7 +50,7 @@ class Table
 
     return unless has_constraints?(old_column)
 
-    ConstraintPropagation.new(@db_conn).duplicate_constraints(@name, old_column)
+    ConstraintPropagation.new(@db_conn).duplicate_constraints(@schema, @name, old_column)
   end
 
   def has_constraints?(column)
@@ -101,16 +101,24 @@ class Table
   def add_unique_index(index_name, table_name, column_name)
     sql = <<~SQL
       CREATE UNIQUE INDEX CONCURRENTLY #{index_name}
-      ON #{table_name} (#{column_name});
+      ON #{@schema}.#{table_name} (#{column_name});
     SQL
     @db_conn.query_lockable(sql)
   end
 
   def add_unique_constraint(table_name, constraint_name, index_name)
     sql = <<~SQL
-      ALTER TABLE #{table_name}
+      ALTER TABLE #{@schema}.#{table_name}
       ADD CONSTRAINT #{constraint_name} UNIQUE
       USING INDEX #{index_name};
+    SQL
+    @db_conn.query(sql)
+  end
+
+  def validate_constraint(constraint_name)
+    sql = <<~SQL
+      ALTER TABLE #{@schema}.#{@name}#{' '}
+      VALIDATE CONSTRAINT #{constraint_name}
     SQL
     @db_conn.query(sql)
   end
@@ -163,7 +171,7 @@ class Table
       FROM information_schema.key_column_usage AS c
         JOIN information_schema.table_constraints AS t
         ON t.constraint_name = c.constraint_name
-      WHERE c.constraint_schema = $1
+      WHERE t.table_schema = $1
         AND t.table_name = $2
         AND t.constraint_type = 'PRIMARY KEY';
     SQL
@@ -197,19 +205,21 @@ class Table
           inner join INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE cu#{' '}
               on cu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME#{' '}
       where tc.CONSTRAINT_TYPE = 'UNIQUE'
-        and tc.TABLE_NAME = $1
-        and cu.COLUMN_NAME = $2
+        and tc.TABLE_SCHEMA = $1
+        and tc.TABLE_NAME = $2
+        and cu.COLUMN_NAME = $3
     SQL
-    @db_conn.query(sql, [@name, column])
+    @db_conn.query(sql, [@schema, @name, column])
   end
 
   def get_existing_constraints(column)
     sql = <<~SQL
       SELECT constraint_name FROM information_schema.constraint_column_usage#{' '}
-      WHERE table_name = $1#{' '}
-      AND column_name = $2;
+      WHERE table_schema = $1
+      AND table_name = $2#{' '}
+      AND column_name = $3;
     SQL
-    constraints = @db_conn.query(sql, [@name, column])
+    constraints = @db_conn.query(sql, [@schema, @name, column])
     constraints.values
   end
 
@@ -223,10 +233,11 @@ class Table
       FROM information_schema.columns col
       WHERE col.column_default IS NOT NULL
         AND col.table_schema NOT IN('information_schema', 'pg_catalog')
-        AND col.column_name = $1
-        AND col.table_name = $2;#{' '}
+        AND col.table_schema = $1
+        AND col.table_name = $2
+        AND col.column_name = $3;
     SQL
-    result = @db_conn.query(sql, [column_name, @table])
+    result = @db_conn.query(sql, [@schema, @name, column_name])
     result.field_values('column_default').first
   end
 
@@ -249,7 +260,6 @@ class Table
 
   def batch_backfill_sql(new_column, up)
     pkey_column = primary_key_column
-
     (0..total_rows_count).step(BATCH_SIZE).map do |offset|
       <<~SQL
         UPDATE #{schema}.#{@name} SET #{new_column} = #{up}

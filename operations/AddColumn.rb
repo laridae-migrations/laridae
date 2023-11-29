@@ -19,12 +19,18 @@ class AddColumn < GeneralOperation
 
   # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
   def expand
+
+    before_view = { @column => nil }
+    after_view = { @column => @column }
+
+    create_before_view(before_view)
+
     data_type = @column['type']
     default_value = @column['default']
     is_unique = @column['unique']
     @table.add_column(@column['name'], data_type, default_value, is_unique)
 
-    if !(@column['nullable'])
+    if @column['nullable'] == false
       not_null_constraint = "CHECK (#{@column['name']} IS NOT NULL) NOT VALID"
       constraint_name = "#{@column['name']}_not_null"
       @table.add_constraint(constraint_name, not_null_constraint)
@@ -39,14 +45,12 @@ class AddColumn < GeneralOperation
       @constraints.push(constraint_name)
     end
 
-    before_view = { @column => nil }
-    after_view = { @column => @column }
-    super(before_view, after_view)
+    create_after_view(after_view)
 
     @table.create_trigger(@table, @column, @new_column, @functions['up'], @functions['down']) if @functions
 
     @constraints.each do |constraint|
-      @database.validate_constraint(@table.name, constraint)
+      @table.validate_constraint(constraint)
     end
   end
 
