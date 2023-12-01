@@ -13,6 +13,7 @@ require_relative '../operations/RenameColumn'
 require_relative '../operations/AddCheckConstraint'
 require_relative '../operations/DropColumn'
 require_relative '../operations/CreateIndex'
+require_relative '../operations/ChangeColumnType'
 
 require 'json'
 
@@ -26,7 +27,8 @@ class Migration
     'create_index' => CreateIndex,
     'add_column' => AddColumn,
     'add_unique_constraint' => AddUniqueConstraint,
-    'add_foreign_key_constraint' => AddForeignKeyConstraint
+    'add_foreign_key_constraint' => AddForeignKeyConstraint,
+    "change_column_type" => ChangeColumnType
   }.freeze
 
   def initialize(db_conn, migration_record, script_hash = {})

@@ -1,13 +1,14 @@
 {
-  "name": "not_null_test",
-  "operation": "add_not_null_constraint",
+  "name": "phone_change_column_type",
+  "operation": "change_column_type",
   "info": {
-    "schema": "test",
+    "schema": "public",
     "table": "employees",
-    "column": "phone"
+    "column": "phone",
+    "type": "char(14)"
   },
   "functions": {
-    "up": "CASE WHEN (phone IS NULL) THEN '000-000-0000' ELSE phone END",
-    "down": "phone"
+    "up": "'1-' || phone",
+    "down": "SUBSTRING(phone, 3)"
   }
 }
