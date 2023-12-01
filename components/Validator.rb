@@ -78,6 +78,11 @@ class Validator
 
   #=======================================================
   # VALIDATOR METHODS CORRESPONDING TO OPERATIONS
+  def self.change_column_type
+    [check_schema_table_column_exist,
+     check_column_does_not_contain_unsupported_constraints]
+  end
+
   def self.add_not_null_constraint
     [check_schema_table_column_exist,
      check_column_does_not_contain_unsupported_constraints]
