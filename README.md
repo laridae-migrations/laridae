@@ -68,16 +68,17 @@ The migration file **must** be a `.json` file, written in JSON formatting. The l
 ### Migration files syntax:
 
 #### Add a new column
-```json
+```
 {
-  operation: "add_column",
-  info: {
-    schema: "schema_name",
-    table: "table_name",
-    column: {
-      name: "column_name",
-      type: "integer",
+  "operation": "add_column",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": {
+      "name": "column_name",
+      "type": "integer",
     },
+  }
 }
 ```
 
