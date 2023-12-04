@@ -53,6 +53,14 @@ class MigrationRecord
     @db_conn.query(sql).ntuples.positive?
   end
 
+  def migration_name_already_exists?(name)
+    sql = <<~SQL
+      SELECT name FROM laridae.migrations 
+      WHERE name = $1;
+    SQL
+    @db_conn.query(sql, name).ntuples.positive?
+  end
+
   #=================================
   # METHODS TO CHECK IF ACTION IS ALLOWED ON CURRENT DATABASE
   def ok_to_expand?(script)
@@ -72,7 +80,7 @@ class MigrationRecord
   end
 
   def duplicated_migration?(script)
-    last_migration && script['name'] == last_migration['name'] && !last_migration['status'] == 'rolled_back'
+    migration_name_already_exists(script['name'])
   end
 
   def last_migration_expanded?
