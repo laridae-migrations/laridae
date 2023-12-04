@@ -15,6 +15,7 @@ The accompanying repositories with the necessary codes for the pipeline integrat
 
 ## Table of Contents
 - [Installation](#installation)
+- [Run a Migration](#Run-a-Migration)
 - [Suported Migrations](#supported-migrations)
 - [Migration file](#Migration-file)
   - [Migration files syntax:](#Migration-files-syntax)
@@ -221,6 +222,6 @@ The `method` field can be `btree`, `GiST`, or `GIN`
 
 - Change a column data type
 
-## CLI
+## Run a Migration 
 
 
