@@ -47,7 +47,6 @@ Using [Bundler](https://github.com/bundler/bundler)
 bundle
 ```
 
-
 ## Supported migrations 
 
 Currently, core `Laridae` functionality supports the following schema changes: 
@@ -61,8 +60,27 @@ Currently, core `Laridae` functionality supports the following schema changes:
 - Drop a column
 - Change a column data type
 
+## Migration file
 
+`Laridae` requires a migration file, which contains the instructions for the schema migration. 
+The migration file **must** be a `.json` file, written in JSON formatting. The location of this file does not matter, as long as the location is supplied to `Laridae` at the time of execution. 
 
+### Migration files syntax:
+
+#### Add a new column
+```json
+{
+  operation: "add_column",
+  info: {
+    schema: "schema_name",
+    table: "table_name",
+    column: {
+      name: "column_name",
+      type: "integer",
+    },
+  }
+}
+```
 
 ## CLI
 
