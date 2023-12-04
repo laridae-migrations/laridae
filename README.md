@@ -16,6 +16,7 @@ The accompanying repositories with the necessary codes for the pipeline integrat
 ## Table of Contents
 - [Installation](#installation)
 - [Suported Migrations](#supported-migrations)
+- [Migration file](#Migration-file)
 
 ## Installation
 #### Clone the repository
@@ -51,7 +52,7 @@ bundle
 
 Currently, core `Laridae` functionality supports the following schema changes: 
 - [Add a new column](#Add-a-new-column)
-- Add an index to an existing column
+- [Add an index to an existing column](#Add-an-index)
 - Add a foreign key to an existing column
 - Rename a column
 - Add a not-null constraint to an existing column
@@ -81,6 +82,28 @@ The migration file **must** be a `.json` file, written in JSON formatting. The l
   }
 }
 ```
+
+#### Add an index 
+The `method` field can be `btree`, `GiST`, or `GIN`
+```
+{
+  "operation": "create_index",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": "column_name",
+    "method": "btree",
+  }
+}
+```
+
+- Add a foreign key to an existing column
+- Rename a column
+- Add a not-null constraint to an existing column
+- Add a unique constraint to an existing column
+- Add check constraint to an existing column
+- Drop a column
+- Change a column data type
 
 ## CLI
 
