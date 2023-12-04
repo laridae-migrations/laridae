@@ -1,4 +1,6 @@
-# LARIDAE
+# LARIDAE, Zero-downtime, reversible, schema migrations tool for PostgresSQL
+
+![Laridae Logo](https://github.com/laridae-migrations/laridae/assets/66891232/bd54086d-e9f1-4ebd-8017-d8dd9737d987)
 
 ## CLI
 
