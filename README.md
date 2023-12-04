@@ -68,7 +68,7 @@ Currently, core `Laridae` functionality supports the following schema changes:
 `Laridae` requires a migration file, which contains the instructions for the schema migration. 
 The migration file **must** be a `.json` file, written in JSON formatting. The location of this file does not matter, as long as the location is supplied to `Laridae` at the time of execution. 
 
-All migration files are required to have a migration name, as specified in the `name` key. Migration in a database with a duplicated name with another already executed 
+All migration files are required to have a migration name, as specified in the `name` key. Migration in a database with a duplicated name with another already expanded or rolled back migration will not run. This decision is to minimize human error as `Laridae` is integrated into a standardized GitHub workflow
 
 ### Migration files syntax:
 
