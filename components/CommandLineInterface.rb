@@ -59,8 +59,8 @@ class CommandLineInterface
   # =================================================
   def init(_)
     db_conn = DatabaseConnection.new(@db_url)
-    puts welcome_ascii
     MigrationRecord.new(db_conn).initialize_laridae
+    puts welcome_ascii
     puts 'Initialization successful.'
   rescue PG::Error => e
     raise e if development?
@@ -77,6 +77,7 @@ class CommandLineInterface
     db_conn = DatabaseConnection.new(@db_url)
     record = MigrationRecord.new(db_conn)
     validate_script(db_conn, migration_file_location)
+    init(_) unless record.laridae_exists?
     migration_script_json = JSON.parse(File.read(migration_file_location))
     puts expand_warning(migration_script_json)
     begin
