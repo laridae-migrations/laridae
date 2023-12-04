@@ -1,6 +1,7 @@
 <div align="center">
   <img width="300" src="https://i.ibb.co/q7FMJ9p/Transparent-Logo.png" alt="Laridae-Logo" >
 </div>
+
 # LARIDAE - Zero-downtime, reversible, schema migrations tool for PostgreSQL with automated integration into GitHub Action workflow
 
 `Laridae` _(LAR-i-dae)_ is an open-source tool that enables reversible, zero-downtime schema migrations in PostgreSQL, synchronizing them with application code deployments for apps using ECS Fargate. It allows application instances expecting the pre-migration and post-migration schema to use the same database simultaneously without requiring changes to either version's code. Additionally, recent schema migrations can be reversed without data loss. This is accomplished with minimal interference with usual reads and writes to the database.
