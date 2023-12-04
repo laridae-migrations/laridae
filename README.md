@@ -4,28 +4,27 @@
 
 # LARIDAE - Zero-downtime, reversible, schema migrations tool for PostgreSQL with automated integration into GitHub Action workflow
 
-`Laridae` (LAR-i-dae) is an open-source tool that enables reversible, zero-downtime schema migrations in PostgreSQL, synchronizing them with application code deployments for apps using ECS Fargate. It allows application instances expecting the pre-migration and post-migration schema to use the same database simultaneously without requiring changes to either version's code. Additionally, recent schema migrations can be reversed without data loss. This is accomplished with minimal interference with usual reads and writes to the database.
+`Laridae` _(LAR-i-dae)_ is an open-source tool that enables reversible, zero-downtime schema migrations in PostgreSQL, synchronizing them with application code deployments for apps using ECS Fargate. It allows application instances expecting the pre-migration and post-migration schema to use the same database simultaneously without requiring changes to either version's code. Additionally, recent schema migrations can be reversed without data loss. This is accomplished with minimal interference with usual reads and writes to the database.
 
-This repository contains the code for the core functionality of schema migration. The accompanying repositories with the necessary codes for the pipeline integration can be found at: 
+**This repository only contains the code for the core functionality of schema migration**. When used alone, this repository acts as a Command-Line tool to facilitate zero-downtime, minimal-locking database changes. `Laridae` core tool allows both new and old applications code to work simultaneously on the same database, as well as the ability to rollback schema changes.
 
+The accompanying repositories with the necessary codes for the pipeline integration can be found at: 
+
+- [Laridae GitHub Action](https://github.com/laridae-migrations/laridae-action)
+- [Laridae Pipeline Initialization Script](https://github.com/laridae-migrations/laridae-initialization)
 
 ## Features 
 
-Currently, `Laridae` only supports deployments that:
-- Have the codebase maintained in a GitHub repository.
-- Have an application hosted on AWS Fargate. 
-- Use a PostgreSQL database, which could be AWS RDS or others.
-- Do not already have a pipeline or have a simple deployment they can replace with the Laridae pipeline.
-- The following common schema changes:
-  - Add new column
-  - Add an index to an existing column
-Add a foreign key to an existing column
-Rename a column
-Add a not null constraint to an existing column
-Add a unique constraint to an existing column
-Add check constraint to an existing column
-Drop a column
-Change column data types
+Currently, core `Laridae` functionality supports the following schema changes: 
+- Add new column
+- Add an index to an existing column
+- Add a foreign key to an existing column
+- Rename a column
+- Add a not null constraint to an existing column
+- Add a unique constraint to an existing column
+- Add check constraint to an existing column
+- Drop a column
+- Change column data types
 
 
 ## CLI
