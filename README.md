@@ -1,5 +1,5 @@
 # LARIDAE, Zero-downtime, reversible, schema migrations tool for PostgresSQ
-![Logo](https://github.com/laridae-migrations/laridae/assets/66891232/d91dbc59-e50d-4669-8554-8d63d62f5c03)
+![Logo](https://github.com/laridae-migrations/laridae/assets/66891232/d91dbc59-e50d-4669-8554-8d63d62f5c03 | width = 300) 
 
 
 ## CLI
