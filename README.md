@@ -13,7 +13,13 @@ The accompanying repositories with the necessary codes for the pipeline integrat
 - [Laridae GitHub Action](https://github.com/laridae-migrations/laridae-action)
 - [Laridae Pipeline Initialization Script](https://github.com/laridae-migrations/laridae-initialization)
 
-## Features 
+## Table of Contents
+- [Installation](#installation)
+- [Suported Migrations](#supported-migrations)
+
+## Installation
+
+## Supported migrations 
 
 Currently, core `Laridae` functionality supports the following schema changes: 
 - Add a new column
@@ -26,11 +32,8 @@ Currently, core `Laridae` functionality supports the following schema changes:
 - Drop a column
 - Change a column data type
 
-## Table of Contents
 
-- [Installation](#installation)
 
-## Installation
 
 ## CLI
 
