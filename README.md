@@ -1,4 +1,5 @@
-# LARIDAE
+# LARIDAE, Zero-downtime, reversible, schema migrations tool for PostgresSQL
+![Laridae](https://ibb.co/vkMnqHM)
 
 ## CLI
 
