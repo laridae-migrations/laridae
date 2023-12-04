@@ -266,12 +266,14 @@ class Table
         WHERE #{pkey_column} BETWEEN 
           (SELECT #{pkey_column} FROM #{schema}.#{@name} ORDER BY #{pkey_column} ASC OFFSET #{offset} LIMIT 1)
         AND
-          (SELECT #{pkey_column} from #{schema}.#{@name} ORDER BY #{pkey_column} ASC OFFSET #{offset + BATCH_SIZE - 1} LIMIT 1));
+          (SELECT #{pkey_column} from #{schema}.#{@name} ORDER BY #{pkey_column} ASC OFFSET #{[offset + BATCH_SIZE - 1, total_rows_count - 1].min} LIMIT 1);
       SQL
+    end
   end
 
   def backfill(new_column, up)
     batch_statements = batch_backfill_sql(new_column, up)
+    puts batch_statements
     batch_statements.each do |statement|
       @db_conn.query(statement)
     end
