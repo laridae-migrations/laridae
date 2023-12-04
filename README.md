@@ -17,6 +17,7 @@ The accompanying repositories with the necessary codes for the pipeline integrat
 - [Installation](#installation)
 - [Suported Migrations](#supported-migrations)
 - [Migration file](#Migration-file)
+  - [Migration files syntax:](#Migration-files-syntax)
 
 ## Installation
 #### Clone the repository
