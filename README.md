@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="300" src="https://ibb.co/HhcRggM" alt=laridae logo" />
+  <img width="300" src="https://i.ibb.co/vXNfzzr/Original-Logo-Symbol.png" alt=laridae logo" />
 </div>
 
 # LARIDAE - Zero-downtime, reversible, schema migrations tool for PostgreSQL with automated integration into GitHub Action workflow
