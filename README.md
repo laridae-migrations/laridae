@@ -50,7 +50,7 @@ bundle
 ## Supported migrations 
 
 Currently, core `Laridae` functionality supports the following schema changes: 
-- Add a new column
+- [Add a new column](#Add-a-new-column)
 - Add an index to an existing column
 - Add a foreign key to an existing column
 - Rename a column
@@ -78,7 +78,6 @@ The migration file **must** be a `.json` file, written in JSON formatting. The l
       name: "column_name",
       type: "integer",
     },
-  }
 }
 ```
 
