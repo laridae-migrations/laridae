@@ -53,7 +53,7 @@ bundle
 Currently, core `Laridae` functionality supports the following schema changes: 
 - [Add a new column](#Add-a-new-column)
 - [Add an index to an existing column](#Add-an-index)
-- Add a foreign key to an existing column
+- [Add a foreign key to an existing column](#Add-a-foreign-key)
 - Rename a column
 - Add a not-null constraint to an existing column
 - Add a unique constraint to an existing column
@@ -66,11 +66,14 @@ Currently, core `Laridae` functionality supports the following schema changes:
 `Laridae` requires a migration file, which contains the instructions for the schema migration. 
 The migration file **must** be a `.json` file, written in JSON formatting. The location of this file does not matter, as long as the location is supplied to `Laridae` at the time of execution. 
 
+All migration files are required to have a migration name, as specified in the `name` key. Migration in a database with a duplicated name with another already executed 
+
 ### Migration files syntax:
 
 #### Add a new column
 ```
 {
+  "name": "mmddyyy_migration_name",
   "operation": "add_column",
   "info": {
     "schema": "schema_name",
@@ -87,6 +90,7 @@ The migration file **must** be a `.json` file, written in JSON formatting. The l
 The `method` field can be `btree`, `GiST`, or `GIN`
 ```
 {
+  "name": "mmddyyy_migration_name",
   "operation": "create_index",
   "info": {
     "schema": "schema_name",
@@ -97,7 +101,41 @@ The `method` field can be `btree`, `GiST`, or `GIN`
 }
 ```
 
-- Add a foreign key to an existing column
+#### Add a foreign key
+```
+{
+  "name": "mmddyyy_migration_name",
+  "operation": "add_foreign_key_constraint",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": {
+      "name": "column_name",
+      "references": {
+        name: "foreign_key_name",
+        table: "referenced_table_name",
+        column: "referenced_column_name",
+      },
+    }
+  }
+}
+```
+
+#### Rename a column
+The `method` field can be `btree`, `GiST`, or `GIN`
+```
+{
+  "name": "mmddyyy_migration_name",
+  "operation": "create_index",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": "column_name",
+    "method": "btree",
+  }
+}
+```
+
 - Rename a column
 - Add a not-null constraint to an existing column
 - Add a unique constraint to an existing column
