@@ -18,6 +18,35 @@ The accompanying repositories with the necessary codes for the pipeline integrat
 - [Suported Migrations](#supported-migrations)
 
 ## Installation
+#### Clone the repository
+
+```shell
+git clone https://github.com/laridae-migrations/laridae
+cd laridae
+```
+
+#### Check your Ruby version
+
+```shell
+ruby -v
+```
+
+The ouput should start with something like `ruby 3.2.1`
+
+If not, install the right ruby version using [rbenv](https://github.com/rbenv/rbenv)
+
+```shell
+rbenv install 3.2.1
+```
+
+#### Install dependencies
+
+Using [Bundler](https://github.com/bundler/bundler)
+
+```shell
+bundle
+```
+
 
 ## Supported migrations 
 
