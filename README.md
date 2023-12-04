@@ -16,16 +16,21 @@ The accompanying repositories with the necessary codes for the pipeline integrat
 ## Features 
 
 Currently, core `Laridae` functionality supports the following schema changes: 
-- Add new column
+- Add a new column
 - Add an index to an existing column
 - Add a foreign key to an existing column
 - Rename a column
-- Add a not null constraint to an existing column
+- Add a not-null constraint to an existing column
 - Add a unique constraint to an existing column
 - Add check constraint to an existing column
 - Drop a column
-- Change column data types
+- Change a column data type
 
+## Table of Contents
+
+- [Installation](#installation)
+
+## Installation
 
 ## CLI
 
