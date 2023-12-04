@@ -1,5 +1,6 @@
 # LARIDAE, Zero-downtime, reversible, schema migrations tool for PostgresSQL
-![Pinterest Profile Image](https://github.com/laridae-migrations/laridae/assets/66891232/e149e0bd-4f99-4baa-afd3-6ed9cf1a76b3)
+![LinkedIn Company Logo](https://github.com/laridae-migrations/laridae/assets/66891232/77e8d894-e3f8-4f1a-915b-e01d67cec8d8)
+
 
 
 ## CLI
