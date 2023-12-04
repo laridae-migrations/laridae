@@ -48,8 +48,7 @@ class Migration
   end
 
   def cleanup_if_last_aborted
-    return unless @record.last_migration && @record.last_migration['status'] == 'aborted'
-
+    return unless @record.last_migration && @record.last_migration['status'] == 'aborted' && @record.last_migration['name'] != @script['name']
     cleanup(JSON.parse(@record.last_migration['script']))
     puts 'Cleaned up last aborted migration.'
   end
