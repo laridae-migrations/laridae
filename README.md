@@ -54,8 +54,8 @@ Currently, core `Laridae` functionality supports the following schema changes:
 - [Add a new column](#Add-a-new-column)
 - [Add an index to an existing column](#Add-an-index)
 - [Add a foreign key to an existing column](#Add-a-foreign-key)
-- Rename a column
-- Add a not-null constraint to an existing column
+- [Rename a column](#Rename-a-column)
+- [Add a not-null constraint to an existing column](#Add-Not-NULL-constraint)
 - Add a unique constraint to an existing column
 - Add check constraint to an existing column
 - Drop a column
@@ -126,17 +126,34 @@ The `method` field can be `btree`, `GiST`, or `GIN`
 ```
 {
   "name": "mmddyyy_migration_name",
-  "operation": "create_index",
+  "operation": "rename_column",
   "info": {
     "schema": "schema_name",
     "table": "table_name",
     "column": "column_name",
-    "method": "btree",
+    "new_name": "new_column_name"
   }
 }
 ```
 
-- Rename a column
+#### Add Not-NULL constraint
+The `method` field can be `btree`, `GiST`, or `GIN`
+```
+{
+  "name": "mmddyyy_migration_name",
+  "operation": "add_not_null_constraint",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": "column_name",
+  },
+  "functions": {
+    "up": "SQL's to consolidate existing NULL values",
+    "down": "column_name"
+  }
+}
+```
+
 - Add a not-null constraint to an existing column
 - Add a unique constraint to an existing column
 - Add check constraint to an existing column
