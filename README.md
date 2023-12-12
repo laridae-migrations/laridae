@@ -149,7 +149,7 @@ The `method` field can be `btree`, `GiST`, or `GIN`
   },
   "functions": {
     "up": "SQL's to consolidate existing NULL values",
-    "down": "column_name"
+    "down": "SQL's to consolidate"
   }
 }
 ```
@@ -166,7 +166,7 @@ The `method` field can be `btree`, `GiST`, or `GIN`
   },
   "functions": {
     "up": "SQL's to consolidate existing duplicated values",
-    "down": "column_name"
+    "down": "SQL's to consolidate"
   }
 }
 ```
@@ -184,7 +184,7 @@ The `method` field can be `btree`, `GiST`, or `GIN`
   },
   "functions": {
     "up": "SQL's to consolidate existing values that violate check constraint",
-    "down": "column_name"
+    "down": "SQL's to consolidate"
   }
 }
 ```
@@ -215,13 +215,75 @@ The `method` field can be `btree`, `GiST`, or `GIN`
   },
   "functions": {
     "up": "SQL's to consolidate existing values that violate new data type",
-    "down": "column_name"
+    "down": "SQL's to consolidate"
   }
 }
 ```
 
-- Change a column data type
-
 ## Run a Migration 
 
+### Database URL
 
+The Database URL, also called the database connection string, is needed to run Laridae from the command line
+
+Example database URL: 
+```shell
+postgres://username:password@localhost:5432/my_database
+```
+
+### CLI Commands
+`database_url` and `path_to_migration_file" needs to be enclosed in double quotes `""`
+
+#### Initialization
+Before running a migration, the database needs to be initialized with the needed Laridae schema. 
+
+For Linux:
+```shell
+./laridae init database_url
+```
+
+For Windows:
+```shell
+ruby laridae init database_url
+```
+
+#### Expand
+Expand will only run for a uniquely named migration. Migrations with duplicated names (meaning it has been run on the same database previously) will be rejected by Laridae. This is to ensure human error does not occur. If Laridae is integrated into a CI/CD pipeline, migration file that was forgotten to be taken out for a given commit will not be run if it has been run before. 
+
+For Linux:
+```shell
+./laridae expand database_url path_to_migration_file
+```
+
+For Windows:
+```shell
+ruby laridae expand database_url path_to_migration_file
+```
+
+#### Contract
+Contract will only run on a database with a successfully expanded script. And aborted or failed expansion is not eligible for Contraction.
+Contract will clean up after itself and rename columns, constraints, triggers, functions, etc to their original state. 
+
+For Linux:
+```shell
+./laridae contract database_url path_to_migration_file
+```
+
+For Windows:
+```shell
+ruby laridae contract database_url path_to_migration_file
+```
+
+#### Rollback
+Rolleback will only run on a database with a successfully expanded script. And aborted or failed expansion is not eligible for Contraction.
+Rollback will clean up after itself and rename columns, constraints, triggers, functions, etc to their original state. 
+
+For Linux:
+```shell
+./laridae rollback database_url path_to_migration_file
+```
+
+For Windows:
+```shell
+ruby laridae rollback database_url path_to_migration_file
+```
