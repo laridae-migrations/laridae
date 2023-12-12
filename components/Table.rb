@@ -273,7 +273,6 @@ class Table
 
   def backfill(new_column, up)
     batch_statements = batch_backfill_sql(new_column, up)
-    puts batch_statements
     batch_statements.each do |statement|
       @db_conn.query(statement)
     end

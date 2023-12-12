@@ -56,7 +56,9 @@ class MigrationRecord
   #=================================
   # METHODS TO CHECK IF ACTION IS ALLOWED ON CURRENT DATABASE
   def ok_to_expand?(script)
-    (!duplicated_migration?(script) && !last_migration_expanded?) || last_migration_aborted?
+    return true if migration_name_duplication_count(script).zero?
+    (migration_name_duplication_count(script) == 1 && last_migration['name'] == script['name']) &&
+    (!last_migration_expanded? || last_migration_aborted?)
   end
 
   def ok_to_contract?
@@ -72,7 +74,7 @@ class MigrationRecord
   end
 
   def duplicated_migration?(script)
-    last_migration && script['name'] == last_migration['name'] && !last_migration['status'] == 'rolled_back'
+    migration_name_duplication_count(script).positive?
   end
 
   def last_migration_expanded?
@@ -81,6 +83,14 @@ class MigrationRecord
 
   def last_migration_aborted?
     last_migration && last_migration['status'] == 'aborted'
+  end
+
+  def migration_name_duplication_count(script)
+    sql = <<~SQL
+      SELECT name FROM laridae.migrations 
+      WHERE name = $1;
+    SQL
+    @db_conn.query(sql, [script['name']]).ntuples
   end
 
   #=================================
