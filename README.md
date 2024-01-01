@@ -49,7 +49,7 @@ bundle
 ## Performing a Migration
 Laridae is intended to be used when new application code requires an updated database schema. Before we show specific CLI commands, here's the overall flow:
 * First, Laridae **expands** the database to tolerate both schema versions. The Laridae CLI outputs a new database URL that should be given to the new application code. (the URL references the existing database, but contains a connection control function which makes the new code access the updated schema). The old code using the existing URL continues to access the original schema.
-* The new code is **deployed** manually by the user (if you are working with an automated deployment pipeline on GitHub Actions, see Laridae's integration [here](https://github.com/marketplace/actions/laridae-postgres-db-schema-migrations).
+* The new code is **deployed** manually by the user (if you are working with an automated deployment pipeline on GitHub Actions, see Laridae's integration [here](https://github.com/marketplace/actions/laridae-postgres-db-schema-migrations)).
 
 After this, there are two options:
 * If the old code has been scaled down, Laridae can **contract** the database to only present the updated schema.
@@ -74,7 +74,7 @@ Laridae requires a migration file, which is a JSON file containing details about
 
 The location of this file does not matter, as long as the location is supplied to `Laridae` at the time of execution (as explained below).
 
-The details of the migration file format are presented [below](#migration-file-syntax).
+The details of the migration file format are presented [below](#migration-files).
 
 All migration files are required to have a migration name, as specified in the `name` key. To avoid accidental duplication of migrations, a migration with the same name as the last migration which was applied using Laridae to a database will not be applied.
 
