@@ -1,24 +1,20 @@
+
 <div align="center">
   <img width="300" src="https://i.ibb.co/q7FMJ9p/Transparent-Logo.png" alt="Laridae-Logo" >
 </div>
 
-# LARIDAE - Zero-downtime, reversible, schema migrations tool for PostgreSQL with automated integration into GitHub Action workflow
+# LARIDAE - Zero-downtime, reversible, schema migrations in PostgreSQL with prebuilt integration into GitHub Action workflows
 
-`Laridae` _(LAR-i-dae)_ is an open-source tool that enables reversible, zero-downtime schema migrations in PostgreSQL, synchronizing them with application code deployments for apps using ECS Fargate. It allows application instances expecting the pre-migration and post-migration schema to use the same database simultaneously without requiring changes to either version's code. Additionally, recent schema migrations can be reversed without data loss. This is accomplished with minimal interference with usual reads and writes to the database.
+Laridae is an open-source tool that enables reversible, zero-downtime schema migrations in PostgreSQL, synchronizing them with application code deployments for apps using ECS Fargate. It allows application instances expecting the pre-migration and post-migration schema to use the same database simultaneously without requiring changes to either version's code. Additionally, recent schema migrations can be reversed without data loss. This is accomplished with minimal interference with usual reads and writes to the database. For more details on Laridae, see our detailed write-up [here](https://laridae-migrations.github.io/).
 
-**This repository only contains the code for the core functionality of schema migration**. When used alone, this repository acts as a Command-Line tool to facilitate zero-downtime, minimal-locking database changes. `Laridae` core tool allows both new and old applications code to work simultaneously on the same database, as well as the ability to rollback schema changes.
+**This repository only contains the code for the core functionality of performing schema migrations**. When used alone, the code in this repository provides a command-line tool to facilitate zero-downtime, minimal-locking database changes, allowing both new and old applications code to work simultaneously on the same database, as well as the ability to rollback schema changes.
 
-The accompanying repositories with the necessary codes for the pipeline integration can be found at: 
-
-- [Laridae GitHub Action](https://github.com/laridae-migrations/laridae-action)
-- [Laridae Pipeline Initialization Script](https://github.com/laridae-migrations/laridae-initialization)
+The GitHub Action providing the CI/CD pipeline integration can be found [here](https://github.com/marketplace/actions/laridae-postgres-db-schema-migrations).
 
 ## Table of Contents
 - [Installation](#installation)
-- [Run a Migration](#Run-a-Migration)
-- [Suported Migrations](#supported-migrations)
-- [Migration file](#Migration-file)
-  - [Migration files syntax:](#Migration-files-syntax)
+- [Performing a Migration](#performing-a-migration)
+- [Migration files](#migration-files)
 
 ## Installation
 #### Clone the repository
@@ -50,7 +46,91 @@ Using [Bundler](https://github.com/bundler/bundler)
 bundle
 ```
 
-## Supported migrations 
+## Performing a Migration
+Laridae is intended to be used when new application code requires an updated database schema. Before we show specific CLI commands, here's the overall flow:
+* First, Laridae **expands** the database to tolerate both schema versions. The Laridae CLI outputs a new database URL that should be given to the new application code. (the URL references the existing database, but contains a connection control function which makes the new code access the updated schema). The old code using the existing URL continues to access the original schema.
+* The new code is **deployed** manually by the user (if you are working with an automated deployment pipeline on GitHub Actions, see Laridae's integration [here](https://github.com/marketplace/actions/laridae-postgres-db-schema-migrations).
+
+After this, there are two options:
+* If the old code has been scaled down, Laridae can **contract** the database to only present the updated schema.
+* Alternatively, the migration can be **rolled back** so that the database is returned to its original form.
+
+For much more detail on the expand-and-contract method and how Laridae automates it, see our write-up [here](https://laridae-migrations.github.io/#expand-and-contract).
+
+### CLI Commands
+On Windows, the `database_url` and `path_to_migration_file` arguments needs to be enclosed in double quotes `""`
+
+### Database URL
+
+The Database URL, also called the database connection string, is needed to run Laridae from the command line
+
+Here's an example database URL: 
+```shell
+postgres://username:password@localhost:5432/my_database
+```
+### Migration file
+
+Laridae requires a migration file, which is a JSON file containing details about the schema migration. 
+
+The location of this file does not matter, as long as the location is supplied to `Laridae` at the time of execution (as explained below).
+
+The details of the migration file format are presented [below](#migration-file-syntax).
+
+All migration files are required to have a migration name, as specified in the `name` key. To avoid accidental duplication of migrations, a migration with the same name as the last migration which was applied using Laridae to a database will not be applied.
+
+#### Initialization
+Before running a migration, Laridae needs to be initialized. It creates a schema called `laridae` in your database where it stores its internal data.
+
+For Linux:
+```shell
+./laridae init [database_url]
+```
+
+For Windows:
+```shell
+ruby laridae init [database_url]
+```
+
+#### Expand
+For Linux:
+```shell
+./laridae expand [database_url] [path_to_migration_file]
+```
+
+For Windows:
+```shell
+ruby laridae expand [database_url] [path_to_migration_file]
+```
+
+#### Contract
+Contract will only run on a database with a successfully expanded script. And aborted or failed expansion is not eligible for contraction.
+Contract will remove the mechanisms Laridae uses to support multiple schema versions simultaneously, and put the database in a form where it only supports the new schema.
+
+For Linux:
+```shell
+./laridae contract [database_url] [path_to_migration_file]
+```
+
+For Windows:
+```shell
+ruby laridae contract [database_url] [path_to_migration_file]
+```
+
+#### Rollback
+Rollback will only run on a database with a successfully expanded script. And aborted or failed expansion is not eligible for rolling back.
+
+For Linux:
+```shell
+./laridae rollback [database_url] [path_to_migration_file]
+```
+
+For Windows:
+```shell
+ruby laridae rollback [database_url] [path_to_migration_file]
+```
+
+## Migration files
+### Supported migrations 
 
 Currently, core `Laridae` functionality supports the following schema changes: 
 - [Add a new column](#Add-a-new-column)
@@ -62,15 +142,21 @@ Currently, core `Laridae` functionality supports the following schema changes:
 - [Add check constraint to an existing column](#Add-CHECK-constraint)
 - [Drop a column](#Drop-column)
 - [Change a column data type](#Change-data-type)
+### `up` and `down` functions
+Some operations modifying specific columns require `up` and `down` functions to specified in the migration script as strings containing SQL. The `up` function specifies how to transform existing data in the column so it fits the new schema, while the `down` function does the opposite: it specifies how data added to the new version of the column should be seen by old application versions.
 
-## Migration file
+Here's a brief example: suppose we have a column of type `char(12)` containing 12-digit strings representing US-phone phone numbers like `919-232-4243`. We want to change the type to `char(14)` to support phone numbers with a country code.
 
-`Laridae` requires a migration file, which contains the instructions for the schema migration. 
-The migration file **must** be a `.json` file, written in JSON formatting. The location of this file does not matter, as long as the location is supplied to `Laridae` at the time of execution. 
-
-All migration files are required to have a migration name, as specified in the `name` key. Migration in a database with a duplicated name with another already expanded or rolled back migration will not run. This decision is to minimize human error as `Laridae` is integrated into a standardized GitHub workflow
-
-### Migration files syntax:
+In this case, since the US has a country code of `1`, an existing phone number like `828-111-2234` should be seen by the new application as `1-828-111-2234`. Conversely, if `1-421-333-4727` is written by the new application, the old application should see `421-333-4727`. In this case, our up function is
+```SQL
+"1-" || phone
+```
+and our down function is
+```SQL
+SUBSTRING(phone, 3)
+```
+For more information on how Laridae propagates data behind the scenes, see our write-up [here](https://laridae-migrations.github.io/#data-propagation).
+### Operations
 
 #### Add a new column
 ```
@@ -88,7 +174,7 @@ All migration files are required to have a migration name, as specified in the `
 }
 ```
 
-#### Add an index 
+### Add an index 
 The `method` field can be `btree`, `GiST`, or `GIN`
 ```
 {
@@ -103,7 +189,7 @@ The `method` field can be `btree`, `GiST`, or `GIN`
 }
 ```
 
-#### Add a foreign key
+### Add a foreign key
 ```
 {
   "name": "mmddyyy_migration_name",
@@ -119,11 +205,15 @@ The `method` field can be `btree`, `GiST`, or `GIN`
         column: "referenced_column_name",
       },
     }
+  },
+  functions: {
+    up: "SQL function to transfer data from old version of column",
+    down: "SQL function to transfer data from new version of column"
   }
 }
 ```
 
-#### Rename a column
+### Rename a column
 ```
 {
   "name": "mmddyyy_migration_name",
@@ -137,7 +227,7 @@ The `method` field can be `btree`, `GiST`, or `GIN`
 }
 ```
 
-#### Add Not-NULL constraint
+### Add Not-NULL constraint
 ```
 {
   "name": "mmddyyy_migration_name",
@@ -148,13 +238,13 @@ The `method` field can be `btree`, `GiST`, or `GIN`
     "column": "column_name",
   },
   "functions": {
-    "up": "SQL's to consolidate existing NULL values",
-    "down": "SQL's to consolidate"
+    up: "SQL function to transfer data from old version of column",
+    down: "SQL function to transfer data from new version of column"
   }
 }
 ```
 
-#### Add UNIQUE constraint
+### Add UNIQUE constraint
 ```
 {
   "name": "mmddyyy_migration_name",
@@ -165,13 +255,13 @@ The `method` field can be `btree`, `GiST`, or `GIN`
     "column": "column_name",
   },
   "functions": {
-    "up": "SQL's to consolidate existing duplicated values",
-    "down": "SQL's to consolidate"
+    up: "SQL function to transfer data from old version of column",
+    down: "SQL function to transfer data from new version of column"
   }
 }
 ```
 
-#### Add CHECK constraint
+### Add CHECK constraint
 ```
 {
   "name": "mmddyyy_migration_name",
@@ -183,8 +273,8 @@ The `method` field can be `btree`, `GiST`, or `GIN`
     "condition": "check condition"
   },
   "functions": {
-    "up": "SQL's to consolidate existing values that violate check constraint",
-    "down": "SQL's to consolidate"
+    up: "SQL function to transfer data from old version of column",
+    down: "SQL function to transfer data from new version of column"
   }
 }
 ```
@@ -202,7 +292,7 @@ The `method` field can be `btree`, `GiST`, or `GIN`
 }
 ```
 
-#### Change data type
+### Change data type
 ```
 {
   "name": "mmddyyy_migration_name",
@@ -214,76 +304,8 @@ The `method` field can be `btree`, `GiST`, or `GIN`
     "type": "new_column_type"
   },
   "functions": {
-    "up": "SQL's to consolidate existing values that violate new data type",
-    "down": "SQL's to consolidate"
+    up: "SQL function to transfer data from old version of column",
+    down: "SQL function to transfer data from new version of column"
   }
 }
-```
-
-## Run a Migration 
-
-### Database URL
-
-The Database URL, also called the database connection string, is needed to run Laridae from the command line
-
-Example database URL: 
-```shell
-postgres://username:password@localhost:5432/my_database
-```
-
-### CLI Commands
-`database_url` and `path_to_migration_file" needs to be enclosed in double quotes `""`
-
-#### Initialization
-Before running a migration, the database needs to be initialized with the needed Laridae schema. 
-
-For Linux:
-```shell
-./laridae init database_url
-```
-
-For Windows:
-```shell
-ruby laridae init database_url
-```
-
-#### Expand
-Expand will only run for a uniquely named migration. Migrations with duplicated names (meaning it has been run on the same database previously) will be rejected by Laridae. This is to ensure human error does not occur. If Laridae is integrated into a CI/CD pipeline, migration file that was forgotten to be taken out for a given commit will not be run if it has been run before. 
-
-For Linux:
-```shell
-./laridae expand database_url path_to_migration_file
-```
-
-For Windows:
-```shell
-ruby laridae expand database_url path_to_migration_file
-```
-
-#### Contract
-Contract will only run on a database with a successfully expanded script. And aborted or failed expansion is not eligible for Contraction.
-Contract will clean up after itself and rename columns, constraints, triggers, functions, etc to their original state. 
-
-For Linux:
-```shell
-./laridae contract database_url path_to_migration_file
-```
-
-For Windows:
-```shell
-ruby laridae contract database_url path_to_migration_file
-```
-
-#### Rollback
-Rolleback will only run on a database with a successfully expanded script. And aborted or failed expansion is not eligible for Contraction.
-Rollback will clean up after itself and rename columns, constraints, triggers, functions, etc to their original state. 
-
-For Linux:
-```shell
-./laridae rollback database_url path_to_migration_file
-```
-
-For Windows:
-```shell
-ruby laridae rollback database_url path_to_migration_file
 ```
