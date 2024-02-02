@@ -2,6 +2,9 @@ source 'https://rubygems.org'
 
 gem 'pg'
 gem 'json'
+gem 'lolize'
+gem 'whirly'
+gem 'paint'
 
 group :development, :test do 
   gem 'rspec'

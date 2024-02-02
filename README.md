@@ -1,337 +1,311 @@
-# LARIDAE, Zero-downtime, reversible, schema migrations tool for PostgresSQL
-![Laridae](https://ibb.co/vkMnqHM)
 
-## CLI
+<div align="center">
+  <img width="300" src="https://i.ibb.co/q7FMJ9p/Transparent-Logo.png" alt="Laridae-Logo" >
+</div>
 
-To use the cli, first run
-`./laridae init [DATABASE URL]`
+# LARIDAE - Zero-downtime, reversible, schema migrations in PostgreSQL with prebuilt integration into GitHub Action workflows
 
-Then, to expand, run
-`./laridae expand [migration script filepath]`
+Laridae is an open-source tool that enables reversible, zero-downtime schema migrations in PostgreSQL, synchronizing them with application code deployments for apps using ECS Fargate. It allows application instances expecting the pre-migration and post-migration schema to use the same database simultaneously without requiring changes to either version's code. Additionally, recent schema migrations can be reversed without data loss. This is accomplished with minimal interference with usual reads and writes to the database. For more details on Laridae, see our detailed write-up [here](https://laridae-migrations.github.io/).
 
-It outputs the URL where the new schema is available.
+**This repository only contains the code for the core functionality of performing schema migrations**. When used alone, the code in this repository provides a command-line tool to facilitate zero-downtime, minimal-locking database changes, allowing both new and old applications code to work simultaneously on the same database, as well as the ability to rollback schema changes.
 
-To contract, completing the migration, run
-`./laridae contract`
+The GitHub Action providing the CI/CD pipeline integration can be found [here](https://github.com/marketplace/actions/laridae-postgres-db-schema-migrations).
 
-To reverse the changes done in the expand phase, run
-`./laridae rollback`
+## Table of Contents
+- [Installation](#installation)
+- [Performing a Migration](#performing-a-migration)
+- [Migration files](#migration-files)
 
-Only one migration in a given database may be run at a time.
+## Installation
+#### Clone the repository
 
-## TERRAFORM AND AWS CLI
-Terraform modules are stored in `/terraform_modules`
-The `initialization.tf` is a terraform file to set up a migration task
-To run this terraform file, make sure to cd into `/terraform_modules` or wherever the `.tf` file(s) reside in: 
-```
-terraform init
-terraform apply
+```shell
+git clone https://github.com/laridae-migrations/laridae
+cd laridae
 ```
 
-The `env_override.json` file contains the `environment` variable that is used to specify the laridae command to use. For example:
-```json
+#### Check your Ruby version
+
+```shell
+ruby -v
+```
+
+The ouput should start with something like `ruby 3.2.1`
+
+If not, install the right ruby version using [rbenv](https://github.com/rbenv/rbenv)
+
+```shell
+rbenv install 3.2.1
+```
+
+#### Install dependencies
+
+Using [Bundler](https://github.com/bundler/bundler)
+
+```shell
+bundle
+```
+
+## Performing a Migration
+Laridae is intended to be used when new application code requires an updated database schema. Before we show specific CLI commands, here's the overall flow:
+* First, Laridae **expands** the database to tolerate both schema versions. The Laridae CLI outputs a new database URL that should be given to the new application code. (the URL references the existing database, but contains a connection control function which makes the new code access the updated schema). The old code using the existing URL continues to access the original schema.
+* The new code is **deployed** manually by the user (if you are working with an automated deployment pipeline on GitHub Actions, see Laridae's integration [here](https://github.com/marketplace/actions/laridae-postgres-db-schema-migrations)).
+
+After this, there are two options:
+* If the old code has been scaled down, Laridae can **contract** the database to only present the updated schema.
+* Alternatively, the migration can be **rolled back** so that the database is returned to its original form.
+
+For much more detail on the expand-and-contract method and how Laridae automates it, see our write-up [here](https://laridae-migrations.github.io/#expand-and-contract).
+
+### CLI Commands
+On Windows, the `database_url` and `path_to_migration_file` arguments needs to be enclosed in double quotes `""`
+
+### Database URL
+
+The Database URL, also called the database connection string, is needed to run Laridae from the command line
+
+Here's an example database URL: 
+```shell
+postgres://username:password@localhost:5432/my_database
+```
+### Migration file
+
+Laridae requires a migration file, which is a JSON file containing details about the schema migration. 
+
+The location of this file does not matter, as long as the location is supplied to `Laridae` at the time of execution (as explained below).
+
+The details of the migration file format are presented [below](#migration-files).
+
+All migration files are required to have a migration name, as specified in the `name` key. To avoid accidental duplication of migrations, a migration with the same name as the last migration which was applied using Laridae to a database will not be applied.
+
+#### Initialization
+Before running a migration, Laridae needs to be initialized. It creates a schema called `laridae` in your database where it stores its internal data.
+
+For Linux:
+```shell
+./laridae init [database_url]
+```
+
+For Windows:
+```shell
+ruby laridae init [database_url]
+```
+
+#### Expand
+For Linux:
+```shell
+./laridae expand [database_url] [path_to_migration_file]
+```
+
+For Windows:
+```shell
+ruby laridae expand [database_url] [path_to_migration_file]
+```
+
+#### Contract
+Contract will only run on a database with a successfully expanded script. And aborted or failed expansion is not eligible for contraction.
+Contract will remove the mechanisms Laridae uses to support multiple schema versions simultaneously, and put the database in a form where it only supports the new schema.
+
+For Linux:
+```shell
+./laridae contract [database_url] [path_to_migration_file]
+```
+
+For Windows:
+```shell
+ruby laridae contract [database_url] [path_to_migration_file]
+```
+
+#### Rollback
+Rollback will only run on a database with a successfully expanded script. And aborted or failed expansion is not eligible for rolling back.
+
+For Linux:
+```shell
+./laridae rollback [database_url] [path_to_migration_file]
+```
+
+For Windows:
+```shell
+ruby laridae rollback [database_url] [path_to_migration_file]
+```
+
+## Migration files
+### Supported migrations 
+
+Currently, core `Laridae` functionality supports the following schema changes: 
+- [Add a new column](#Add-a-new-column)
+- [Add an index to an existing column](#Add-an-index)
+- [Add a foreign key to an existing column](#Add-a-foreign-key)
+- [Rename a column](#Rename-a-column)
+- [Add a not-null constraint to an existing column](#Add-Not-NULL-constraint)
+- [Add a unique constraint to an existing column](#Add-UNIQUE-constraint)
+- [Add check constraint to an existing column](#Add-CHECK-constraint)
+- [Drop a column](#Drop-column)
+- [Change a column data type](#Change-data-type)
+### `up` and `down` functions
+Some operations modifying specific columns require `up` and `down` functions to specified in the migration script as strings containing SQL. The `up` function specifies how to transform existing data in the column so it fits the new schema, while the `down` function does the opposite: it specifies how data added to the new version of the column should be seen by old application versions.
+
+Here's a brief example: suppose we have a column of type `char(12)` containing 12-digit strings representing US-phone phone numbers like `919-232-4243`. We want to change the type to `char(14)` to support phone numbers with a country code.
+
+In this case, since the US has a country code of `1`, an existing phone number like `828-111-2234` should be seen by the new application as `1-828-111-2234`. Conversely, if `1-421-333-4727` is written by the new application, the old application should see `421-333-4727`. In this case, our up function is
+```SQL
+"1-" || phone
+```
+and our down function is
+```SQL
+SUBSTRING(phone, 3)
+```
+For more information on how Laridae propagates data behind the scenes, see our write-up [here](https://laridae-migrations.github.io/#data-propagation).
+### Operations
+
+#### Add a new column
+```
 {
-  "containerOverrides": [{
-    "name": "laridae_migration_task",
-    "environment": [
-      {
-        "name": "ACTION",
-        "value": "init"
-      }
-    ]
-  }]
-}
-```
-
-To run this task that Terraform sets up, from the AWS CLI, run:
-```
-aws ecs run-task `
-  --cluster hr-app-cluster `
-  --task-definition laridae_migration_task_definition `
-  --launch-type FARGATE `
-  --network-configuration 'awsvpcConfiguration={subnets=[subnet-03a332974d1a8ae54],securityGroups=[sg-0662da6c515199370],assignPublicIp=ENABLED}' `
-  --overrides file://env_override.json
-```
-
-## ABOUT THE PROJECT DIRECTORIES
-
-- `components`: contains `DatabaseConnection.rb`, `MigrationExecutor.rb`, `TableManipulator.rb`, and `MigrationRecordkeeper.rb`.
-- `examples`: specific examples using the `HR_app` example app
-- `operations`: each file contains the definition of a Ruby class responsible for a specific operation
-
-## `DatabaseConnection.rb`
-
-This class represents the connection to the PostgreSQL database.
-
-To instantiate a `DatabaseConnection` object, pass in a hash containing the database connection parameters. [A list of valid parameters](https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-PARAMKEYWORDS) can be found in the PostgreSQL documentations.
-
-Automatic configurations for each connection at initialization include:
-- Sets `lock_timeout` to 1 second
-- Turns of psql message logging
-
-Example:
-
-```ruby
-DatabaseConnection.new(
-  {
-    dbname: 'postgres',
-    host: 'localhost',
-    port: 5432,
-    user: 'postgres'
-  }
-)
-```
-
-## `CommandLineInterface.rb`
-
-This class deals with tasks specific to the command-line interface for laridae: parsing the user's command-line arguments, storing and accessing the database URL in a file, parsing the JSON of the migration script into a Ruby hash, and prompting the user to choose actions during the migration.
-
-Its initializer takes an array containing the command-line arguments to parse.
-
-## `EnvironmentVariablesInterface.rb`
-
-This class presents an alternative interface for laridae in which all the necessary inputs are provided through environment variables. It is intended to be used in setting like an ECS container or Lambda.
-
-Its initializer takes no arguments. The necessary environment variables are `DATABASE_URL`, `ACTION`, which is one of `init`, `expand`, `rollback`, or `contract`, and, if the action is `expand`, `SCRIPT`, containing the migration script JSON.
-
-## `MigrationExecutor.rb`
-
-This class is responsible for orchestrating the migration at a high-level by delegating the individual migration steps to appropriate classes.
-
-Its initializer takes a database URL or database connection hash as described above for `DatabaseConnection.rb`.
-
-## `TableManipulator.rb`
-
-This class contains logic for interacting directly with the database that is used by various operations: some of these tasks are specific to expand-and-contract, like creating triggers and backfilling, whereas others are common database operations like adding a constraint or dropping a column.
-
-To create a TableManipulator, pass in a `DatabaseConnectionObject` and strings containing the schema and table name it will operate on.
-
-## `MigrationRecordkeeper.rb`
-
-This class is responsible for keeping track of the currently open migration. It stores the migration script for the open migration in the table "laridae.open_migration" and exposes methods for creating/reading/removing an open migration.
-
-Its initializer takes a `DatabaseConnectionObject` for the database where the migration info should be stored.
-
-## SCRIPT VALIDATOR
-
-This class contains initial checks on the json migration script to vet out any glarring conflicts such as: invalid schema / table / column name, column is a Primary Key, or referenced
-
-The `Validator` class can be run directly, requiring a `DatabaseConnection` object, and a migration script hash
-
-```ruby
-Validator.new(db_connection, script_migration).run
-```
-
-A valid migration will return:
-
-```ruby
-{ 'valid' => true }
-```
-
-A migration script containing error will return a hash object similar to:
-
-```ruby
-{ 'valid' => false,
-  'message' => 'Some error message' }
-```
-
-## OPERATIONS
-
-The details of performing expand/contract/rollback for each operation are the responsibility of classes defined in the operations directory. Each of these classes takes a `DatabaseConnection` object, and a `migration_script` hash containing the necessary data for the migration. They expose `expand`, `contract`, and `rollback` methods for performing those actions for the supplied migration script.
-
-Example migration scripts:
-
-```json
-{
-  "operation": "add_not_null",
+  "name": "mmddyyy_migration_name",
+  "operation": "add_column",
   "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone"
-  },
-  "functions": {
-    "up": "CASE WHEN phone IS NULL THEN '0000000000' ELSE phone END",
-    "down": "phone"
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": {
+      "name": "column_name",
+      "type": "integer",
+    },
   }
 }
 ```
 
-```json
-{
-  "operation": "rename_column",
-  "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone",
-    "new_name": "phone_number"
-  }
-}
+### Add an index 
+The `method` field can be `btree`, `GiST`, or `GIN`
 ```
-
-```json
 {
-  "operation": "add_check_constraint",
-  "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone",
-    "condition": "phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d'"
-  },
-  "functions": {
-    "up": "CASE WHEN (NOT phone ~* '\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d') THEN '000-000-0000' ELSE phone END",
-    "down": "phone"
-  }
-}
-```
-
-```json
-{
-  "operation": "drop_column",
-  "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone"
-  }
-}
-```
-
-```json
-{
+  "name": "mmddyyy_migration_name",
   "operation": "create_index",
   "info": {
-    "schema": "public",
-    "table": "employees",
-    "column": "phone",
-    "method": "btree"
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": "column_name",
+    "method": "btree",
   }
 }
 ```
 
-# - adding a new column to a table that is nullable (can have null values)
-
-```ruby
-test_add_column_script = {
-  operation: "add_column",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: {
-      name: "description",
-      type: "text",
-      nullable: true,
-    },
-  }
-}
+### Add a foreign key
 ```
-
-# - adding a new column to a table with a not null constraint
-
-```ruby
-test_add_column_script = {
-  operation: "add_column",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: {
-      name: "description",
-      type: "text",
-      nullable: true,
-    },
-  }
-}
-```
-
-# - adding a new column to a table with a unique constraint
-
-```ruby
-test_add_column_script = {
-  operation: "add_column",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: {
-      name: "computer_id",
-      type: "integer",
-      unique: true,
-    },
-  }
-}
-```
-
-# adding a new column with a check constraint
-
-```ruby
-test_add_column_script = {
-  operation: "add_column",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: {
-      name: "age_insert_ex",
-      type: "integer",
-      check: {
-        name: "age_check",
-        constraint: "age >= 18"
-      }
-    },
-  }
-}
-```
-
-# setting a unique constraint on a column in a table
-
-Note functions are WRONG and DO NOT work
-
-```ruby
-test_add_column_script = {
-  operation: "add_unique_constraint",
-  info: {
-    schema: "public",
-    table: "employees",
-    column: {
-      name: "computer_id",
-    },
-  },
-  functions: {
-    up: "CASE WHEN computer_id IS NOT UNIQUE THEN '0000000000' ELSE phone END",
-    down: "computer_id"
-  }
-}
-```
-
-# adding a foreign key to column
-
-```ruby
-test_add_column_script = {
-  operation: "add_foreign_key_constraint",
-  info: {
-    schema: "public",
-    table: "phones_ex",
-    column: {
-      name: "employee_id",
-      references: {
-        name: "fk_employee_id",
-        table: "employees",
-        column: "id",
+{
+  "name": "mmddyyy_migration_name",
+  "operation": "add_foreign_key_constraint",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": {
+      "name": "column_name",
+      "references": {
+        name: "foreign_key_name",
+        table: "referenced_table_name",
+        column: "referenced_column_name",
       },
-    },
+    }
   },
   functions: {
-    up: "(SELECT CASE WHEN EXISTS (SELECT 1 FROM employees WHERE employees.id = employee_id) THEN employee_id ELSE NULL END)",
-    down: "employee_id"
+    up: "SQL function to transfer data from old version of column",
+    down: "SQL function to transfer data from new version of column"
   }
 }
 ```
 
-## SPECIFIC EXAMPLES
-
-## TESTING
-
-Testing is done using `rspec`, all specs can be found in `\tests`
-`\test_data` contain `.pglsql` data for spec files, each spec handles its own data population
-
-To run a spec:
-
+### Rename a column
 ```
-rspec tests/spec_file_name.rb
+{
+  "name": "mmddyyy_migration_name",
+  "operation": "rename_column",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": "column_name",
+    "new_name": "new_column_name"
+  }
+}
+```
+
+### Add Not-NULL constraint
+```
+{
+  "name": "mmddyyy_migration_name",
+  "operation": "add_not_null_constraint",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": "column_name",
+  },
+  "functions": {
+    up: "SQL function to transfer data from old version of column",
+    down: "SQL function to transfer data from new version of column"
+  }
+}
+```
+
+### Add UNIQUE constraint
+```
+{
+  "name": "mmddyyy_migration_name",
+  "operation": "add_unique_constraint",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": "column_name",
+  },
+  "functions": {
+    up: "SQL function to transfer data from old version of column",
+    down: "SQL function to transfer data from new version of column"
+  }
+}
+```
+
+### Add CHECK constraint
+```
+{
+  "name": "mmddyyy_migration_name",
+  "operation": "add_check_constraint",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": "column_name",
+    "condition": "check condition"
+  },
+  "functions": {
+    up: "SQL function to transfer data from old version of column",
+    down: "SQL function to transfer data from new version of column"
+  }
+}
+```
+
+#### Drop column
+```
+{
+  "name": "mmddyyy_migration_name",
+  "operation": "drop_column",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": "column_name",
+  }
+}
+```
+
+### Change data type
+```
+{
+  "name": "mmddyyy_migration_name",
+  "operation": "change_column_type",
+  "info": {
+    "schema": "schema_name",
+    "table": "table_name",
+    "column": "column_name",
+    "type": "new_column_type"
+  },
+  "functions": {
+    up: "SQL function to transfer data from old version of column",
+    down: "SQL function to transfer data from new version of column"
+  }
+}
 ```
